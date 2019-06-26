@@ -1,0 +1,19 @@
+WARNING:tensorflow:From /Users/jinli/Projects/ShanghaiTech/3DProteinPrediction/UTGN/model/model.py:577: string_input_producer (from tensorflow.python.training.input) is deprecated and will be removed in a future version.
+Instructions for updating:
+Queue-based input pipelines have been replaced by `tf.data`. Use `tf.data.Dataset.from_tensor_slices(string_tensor).shuffle(tf.shape(input_tensor, out_type=tf.int64)[0]).repeat(num_epochs)`. If `shuffle=False`, omit the `.shuffle(...)`.
+Traceback (most recent call last):
+  File "protling.py", line 535, in <module>
+    while loop(args): pass
+  File "protling.py", line 306, in loop
+    models.update({'training': RGNModel('training', configs['training'])})
+  File "/Users/jinli/Projects/ShanghaiTech/3DProteinPrediction/UTGN/model/model.py", line 116, in __init__
+    self._create_graph(mode, self.config)
+  File "/Users/jinli/Projects/ShanghaiTech/3DProteinPrediction/UTGN/model/model.py", line 181, in _create_graph
+    ids, primaries, evolutionaries, secondaries, tertiaries, masks, num_stepss = _dataflow(dataflow_config, max_length)
+  File "/Users/jinli/Projects/ShanghaiTech/3DProteinPrediction/UTGN/model/model.py", line 577, in _dataflow
+    name='file_queue')
+  File "/Library/Python/2.7/site-packages/tensorflow/python/util/deprecation.py", line 306, in new_func
+    return func(*args, **kwargs)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/training/input.py", line 257, in string_input_producer
+    raise ValueError(not_null_err)
+ValueError: string_input_producer requires a non-null input tensor
