@@ -41,7 +41,7 @@
 
 | Progress | Date Finished | Task                  
 |----------|---------------|-----
-| NW | NAN | Create all the starting files and directories.
+| C        | 6/24/2019     | Create all the starting files and directories.
 | NW | NAN | Add license.
 
 
@@ -60,7 +60,7 @@
 
 | Progress | Date Finished | Task                  
 |----------|---------------|-----
-| NW | NAN | Download data.
+| C        | 6/24/2019     | Download data.
 | NW | NAN | Compress data to reduce memory.
 
 
@@ -76,7 +76,9 @@
 
 | Progress | Date Finished | Task                  
 |----------|---------------|-----
-| NW | NAN | Read through and understand [RGN code](https://github.com/aqlaboratory/rgn).
+| C        | 6/24/2019     | Read through and understand [RGN code](https://github.com/aqlaboratory/rgn). Try to run it.
+| NW | NAN | Replace bi-directional LSTM with vanilla transformer.
+| NW | NAN | Transfer files to workstation.
 | NW | NAN | Read through and understand [UT code](https://github.com/tensorflow/tensor2tensor).
 | NW | NAN | Ask [researchers](https://www.biorxiv.org/content/10.1101/622803v1.abstract) to send me their amino acids embedding.
 | NW | NAN | Replace the bi-directional LSTM with [Universal Transformer](https://arxiv.org/pdf/1807.03819v3.pdf).
@@ -138,6 +140,8 @@
 | NW | NAN | Create a Pypi package.
 | NW | NAN | Create requirements.txt
 | NW | NAN | Update the README.md file.
+| NW | NAN | Refactor code and change coding format.
+| NW | NAN | Update RGN code so it works for python 3 and the version of tensorflow that we are using.
 
 
 

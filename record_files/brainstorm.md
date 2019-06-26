@@ -1,8 +1,7 @@
-# 6/18/2019
-
 ```
 ssh 10.19.129.71
 ```
+
 What do I want to do? 
 
 ## Broad Goal
@@ -22,11 +21,48 @@ Augment Mohammed AlQuraishi's [RGN](https://github.com/aqlaboratory/rgn).
 ## Some Possible Ideas
 * Is there a way to include physics-based principles / co-evolution in the End-to-End? (probably not).
 * Use some of the suggestions from End-to-End paper.
+* Relative position?
+* Plug-and-play: switch around models to try (ex. bi-directional LSTM, Universal Transformer, Temporal Convolutional Neural Networks, etc)
 
 ## Things I Hope To Do
 * Is there a way to decrease the training time?
 
 ## Questions
 * What specs do I have for training?
+* Does the RGN code do batching efficiently?
 
-Relative position?
+## Other 
+
+
+
+python2.7
+tensorflow-gpu==1.12.0
+tensorflow==1.12.0
+setproctitle
+
+
+Don't remove anything that already exists.
+Don't refactor code too quickly.
+Options are way more limited for transformer.
+
+Think about how I can take ideas from the RNN cell.
+    GPU?
+    need to add to weights and biases collection
+    residual connections
+    include dihedrals between layers
+
+_recurrent_cell: don't care
+understand the inputs and outputs for training and evaluating
+    evaluating: no dropout
+    output of outputs: [NUM_STEPS, BATCH_SIZE, RECURRENT_LAYER_SIZE]
+    output of states (I think):[BATCH_SIZE, RECURRENT_LAYER_SIZE]
+    I don't think the states actually matter because they aren't used.
+    shape of inputs:
+    Do what I need to do then transpose.
+
+Possible causes of dead gradients:
+    multiplication by 0
+    non-existent gradients
+    taking gradients of constant?
+    division by 0
+    sqrt function near 0

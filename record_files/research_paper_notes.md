@@ -10,6 +10,15 @@
 
 
 
+# Language Models are Unsupervised Multitask Learners
+
+[LINK](https://d4mucfpksywv.cloudfront.net/better-language-models/language-models.pdf)
+
+2018
+
+
+
+
 # Training Tips for the Transformer Model
 
 [LINK](https://arxiv.org/abs/1804.00247)
@@ -232,5 +241,27 @@ READ THIS
 # STCN: STOCHASTIC TEMPORAL CONVOLUTIONAL NETWORKS
 
 [LINK](https://arxiv.org/pdf/1902.06568.pdf)
+
+2019
+
+
+
+
+
+
+# Analysis of distance-based protein structure prediction by deep learning in CASP13
+
+[LINK](https://www.biorxiv.org/content/biorxiv/early/2019/05/02/624460.full.pdf)
+
+2019
+
+
+
+
+
+
+# Evaluating Protein Transfer Learning with TAPE
+
+[LINK](https://arxiv.org/pdf/1906.08230.pdf)
 
 2019
