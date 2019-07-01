@@ -1,28 +1,26 @@
-#!/usr/bin/python
+"""Main script for executing training / testing. 
 
-__author__ = "Jin Li"
-__copyright__ = "Copyright 2019, University of Chicago"
-__license__ = "MIT"
+TODO: make sure all strings are in single quotes
+TODO: rename protling to something more descriptive
+"""
 
-
-# imports
 import os
 import sys
 import signal
 import argparse
 import fileinput
-import numpy as np
-import tensorflow as tf
-from utils import *
 from copy import deepcopy
 from glob import glob
 from shutil import rmtree
 from pprint import pprint
+import numpy as np
+import tensorflow as tf
 from setproctitle import setproctitle
+from utils import *
 from model import RGNModel
 from config import RGNConfig, RunConfig
 
-# constant directory and file names
+# directory names
 RUNS_DIRNAME = 'runs'
 DATAS_DIRNAME = 'data'
 CHECKPOINTS_DIRNAME = 'checkpoints'
@@ -46,10 +44,13 @@ class DeadGradientError(RuntimeError):
 
 # logging functions
 def evaluate_and_log(log_file, configs, models, session):
+    """Evaluate model and log.
+
+    """
     # evaluation of weighted losses
-    wt_train_loss_dict = models['eval_wt_train'].evaluate(session) if configs['run'].evaluation['include_weighted_training']   else {}
-    wt_val_loss_dict   = models['eval_wt_val'].evaluate(session)   if configs['run'].evaluation['include_weighted_validation'] else {}
-    wt_test_loss_dict  = models['eval_wt_test'].evaluate(session)  if configs['run'].evaluation['include_weighted_testing']    else {}
+    wt_train_loss_dict = models['eval_wt_train'].evaluate(session) if configs['run'].evaluation['include_weighted_training'] else {}
+    wt_val_loss_dict = models['eval_wt_val'].evaluate(session) if configs['run'].evaluation['include_weighted_validation'] else {}
+    wt_test_loss_dict = models['eval_wt_test'].evaluate(session) if configs['run'].evaluation['include_weighted_testing'] else {}
 
     # diagnostics
     if configs['run'].evaluation['include_diagnostics']: 
@@ -154,7 +155,19 @@ def evaluate_and_log(log_file, configs, models, session):
     return diagnostics
 
 def predict_and_log(log_dir, configs, models, session):
-    # assumes that the validation reference designation (wt vs. unwt) can be used for the training and test sets as well
+    """Predict 3D structure and log.
+
+    Args:
+        log_dir: directory to log
+        configs: config dict
+        models: tf models
+        session: tf session
+
+    Returns:
+        None
+    """
+    # assumes that the validation reference designation 
+    # (wt vs. unwt) can be used for the training and test sets as well
     val_ref_set_prefix = 'un' if configs['run'].optimization['validation_reference'] == 'unweighted' else ''
 
     for label, model in models.iteritems():
@@ -172,70 +185,128 @@ def predict_and_log(log_dir, configs, models, session):
                     generate = False
 
             if generate:
-                if not os.path.exists(outputs_dir): os.makedirs(outputs_dir)
+                if not os.path.exists(outputs_dir): 
+                    os.makedirs(outputs_dir)
 
                 for _ in range(configs[label].queueing['num_evaluation_invocations']):
                     dicts = model.predict(session)
                     for idx, dict_ in dicts.iteritems():
                         if 'tertiary'  in dict_:
-                            np.savetxt(os.path.join(outputs_dir, idx + '.tertiary'), dict_['tertiary'], header='\n')
+                            np.savetxt(
+                                os.path.join(outputs_dir, idx + '.tertiary'), 
+                                dict_['tertiary'], header='\n')
                         if 'recurrent_states' in dict_:
-                            np.savetxt(os.path.join(outputs_dir, idx + '.recurrent_states'), dict_['recurrent_states'])
+                            np.savetxt(
+                                os.path.join(outputs_dir, idx + '.recurrent_states'), 
+                                dict_['recurrent_states'])
 
-def loop(args):
+def run_model(args):
+    """Either train a model or use it to predict.
+
+    TODO: add more reasons for failing.
+    
+    Restart if training failed. 
+    Possible reasons:
+
+
+    Args:
+        args: Parsed arguments from command line.
+
+    Returns:
+        whether to restart or not.
+    """
+
     # create config and model collection objects, and retrieve the run config
     configs = {}
-    models  = {}
     configs.update({'run': RunConfig(args.config_file)})
 
     # set GPU-related environmental options and config settings
+    # ??? does this even do anything? Whats the point of setting the environment?
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu) if args.gpu is not None else ''
-    setproctitle('RGN ' + configs['run'].names['run'] + ' on ' + os.getenv('CUDA_VISIBLE_DEVICES', 'CPU'))
+    setproctitle('RGN ' + configs['run'].names['run'] + ' on ' \
+                  + os.getenv('CUDA_VISIBLE_DEVICES', 'CPU'))
 
     # derived files and directories
-    base_dir        = args.base_directory
-    run_dir         = os.path.join(base_dir, RUNS_DIRNAME,        configs['run'].names['run'], configs['run'].names['dataset'])
-    data_dir        = os.path.join(base_dir, DATAS_DIRNAME,       configs['run'].names['dataset'])
-    checkpoints_dir = os.path.join(run_dir,  CHECKPOINTS_DIRNAME, '')
-    logs_dir        = os.path.join(run_dir,  LOGS_DIRNAME,        '')
-    stdout_err_file = os.path.join(base_dir, LOGS_DIRNAME,        configs['run'].names['run'] + '.log')
-    alphabet_file   = os.path.join(data_dir, ALPHABETS_DIRNAME,   configs['run'].names['alphabet'] + '.csv') if configs['run'].names['alphabet'] is not None else None
+    base_dir = args.base_directory
+    run_dir = os.path.join(
+        base_dir, 
+        RUNS_DIRNAME,
+        configs['run'].names['run'], 
+        configs['run'].names['dataset'])
+    data_dir = os.path.join(
+        base_dir, 
+        DATAS_DIRNAME,
+        configs['run'].names['dataset'])
+    checkpoints_dir = os.path.join(
+        run_dir,
+        CHECKPOINTS_DIRNAME)
+    logs_dir = os.path.join(
+        run_dir,
+        LOGS_DIRNAME)
+    stdout_err_file = os.path.join(
+        base_dir, 
+        LOGS_DIRNAME,
+        configs['run'].names['run'] + '.log')
+    alphabet_file = os.path.join(
+        data_dir, 
+        ALPHABETS_DIRNAME,   
+        configs['run'].names['alphabet'] + '.csv') \
+        if configs['run'].names['alphabet'] is not None else None
 
-    # this is all for evaluation models (including training, so training_batch_size is for evaluation)
-    full_training_glob     = os.path.join(data_dir, FULL_TRAINING_DIRNAME,     configs['run'].io['full_training_glob'])
-    sample_training_glob   = os.path.join(data_dir, FULL_TRAINING_DIRNAME,   configs['run'].io['sample_training_glob'])
-    training_batch_size    = configs['run'].evaluation['num_training_samples']
-    training_invocations   = configs['run'].evaluation['num_training_invocations']
+    # this is all for evaluation models 
+    # (including training, so training_batch_size is for evaluation)
+    full_training_glob = os.path.join(
+        data_dir, 
+        FULL_TRAINING_DIRNAME,     
+        configs['run'].io['full_training_glob'])
+    sample_training_glob = os.path.join(
+        data_dir, 
+        FULL_TRAINING_DIRNAME,
+        configs['run'].io['sample_training_glob'])
+    training_batch_size = configs['run'].evaluation['num_training_samples']
+    training_invocations = configs['run'].evaluation['num_training_invocations']
 
-    validation_glob        = os.path.join(data_dir, SAMPLE_VALIDATION_DIRNAME, configs['run'].io['sample_validation_glob'])
-    validation_batch_size  = configs['run'].evaluation['num_validation_samples']
+    validation_glob = os.path.join(
+        data_dir, 
+        SAMPLE_VALIDATION_DIRNAME, 
+        configs['run'].io['sample_validation_glob'])
+    validation_batch_size = configs['run'].evaluation['num_validation_samples']
     validation_invocations = configs['run'].evaluation['num_validation_invocations']
 
-    testing_glob           = os.path.join(data_dir, FULL_TESTING_DIRNAME,      configs['run'].io['full_testing_glob'])
-    testing_batch_size     = configs['run'].evaluation['num_testing_samples']
-    testing_invocations    = configs['run'].evaluation['num_testing_invocations']
+    testing_glob = os.path.join(
+        data_dir, 
+        FULL_TESTING_DIRNAME,
+        configs['run'].io['full_testing_glob'])
+    testing_batch_size = configs['run'].evaluation['num_testing_samples']
+    testing_invocations = configs['run'].evaluation['num_testing_invocations']
 
-    if not args.prediction_only:
-        eval_num_epochs = None
-    else:
+    if args.prediction_only:
         eval_num_epochs = 1
         training_batch_size = validation_batch_size = testing_batch_size = 1
         training_invocations = validation_invocations = testing_invocations = 1
-
+    else:
+        eval_num_epochs = None
+        
     # redirect stdout/err to file
     sys.stderr.flush()
-    if not os.path.exists(os.path.dirname(stdout_err_file)): os.makedirs(os.path.dirname(stdout_err_file))
+    if not os.path.exists(os.path.dirname(stdout_err_file)): 
+        os.makedirs(os.path.dirname(stdout_err_file))
     stdout_err_file_handle = open(stdout_err_file, 'w')
     os.dup2(stdout_err_file_handle.fileno(), sys.stderr.fileno())
     sys.stdout = stdout_err_file_handle
 
-    # select device placement taking into consideration the interaction between training and evaluation models
-    if configs['run'].computing['training_device'] == 'GPU' and configs['run'].computing['evaluation_device'] == 'GPU':
+    # select device placement taking into consideration the 
+    # interaction between training and evaluation models
+    # fod: functions on device
+    # dd: default device
+    if configs['run'].computing['training_device'] == 'GPU' \
+    and configs['run'].computing['evaluation_device'] == 'GPU':
         fod_training   = {'/cpu:0': ['point_to_coordinate']}
         fod_evaluation = {'/cpu:0': ['point_to_coordinate']}
         dd_training   = ''
         dd_evaluation = ''
-    elif configs['run'].computing['training_device'] == 'GPU' and configs['run'].computing['evaluation_device'] == 'CPU':
+    elif configs['run'].computing['training_device'] == 'GPU' \
+    and configs['run'].computing['evaluation_device'] == 'CPU':
         fod_training   = {'/cpu:0': ['point_to_coordinate', 'loss_history']}
         fod_evaluation = {}
         dd_training   = ''
@@ -247,59 +318,72 @@ def loop(args):
         dd_evaluation = '/cpu:0'
 
     # create models configuration templates
-    configs.update({'training': RGNConfig(args.config_file, 
-                                          {'name':                        'training',
-                                           'dataFilesGlob':               full_training_glob,
-                                           'checkpointsDirectory':        checkpoints_dir,
-                                           'logsDirectory':               logs_dir,
-                                           'fileQueueCapacity':           configs['run'].queueing['training_file_queue_capacity'],
-                                           'batchQueueCapacity':          configs['run'].queueing['training_batch_queue_capacity'],
-                                           'minAfterDequeue':             configs['run'].queueing['training_min_after_dequeue'],
-                                           'shuffle':                     configs['run'].queueing['training_shuffle'],
-                                           'tertiaryNormalization':       configs['run'].loss['training_tertiary_normalization'],
-                                           'batchDependentNormalization': configs['run'].loss['training_batch_dependent_normalization'],
-                                           'alphabetFile':                alphabet_file,
-                                           'functionsOnDevices':          fod_training,
-                                           'defaultDevice':               dd_training,
-                                           'fillGPU':                     args.fill_gpu})})
+    configs.update(
+        {'training': RGNConfig(
+            args.config_file, 
+            {
+            'name':                        'training',
+            'dataFilesGlob':               full_training_glob,
+            'checkpointsDirectory':        checkpoints_dir,
+            'logsDirectory':               logs_dir,
+            'fileQueueCapacity':           configs['run'].queueing['training_file_queue_capacity'],
+            'batchQueueCapacity':          configs['run'].queueing['training_batch_queue_capacity'],
+            'minAfterDequeue':             configs['run'].queueing['training_min_after_dequeue'],
+            'shuffle':                     configs['run'].queueing['training_shuffle'],
+            'tertiaryNormalization':       configs['run'].loss['training_tertiary_normalization'],
+            'batchDependentNormalization': configs['run'].loss['training_batch_dependent_normalization'],
+            'alphabetFile':                alphabet_file,
+            'functionsOnDevices':          fod_training,
+            'defaultDevice':               dd_training,
+            'fillGPU':                     args.fill_gpu})})
 
-    configs.update({'evaluation': RGNConfig(args.config_file, 
-                                            {'fileQueueCapacity':           configs['run'].queueing['evaluation_file_queue_capacity'],
-                                             'batchQueueCapacity':          configs['run'].queueing['evaluation_batch_queue_capacity'],
-                                             'minAfterDequeue':             configs['run'].queueing['evaluation_min_after_dequeue'],
-                                             'shuffle':                     configs['run'].queueing['evaluation_shuffle'],
-                                             'tertiaryNormalization':       configs['run'].loss['evaluation_tertiary_normalization'],
-                                             'batchDependentNormalization': configs['run'].loss['evaluation_batch_dependent_normalization'],
-                                             'alphabetFile':                alphabet_file,
-                                             'functionsOnDevices':          fod_evaluation,
-                                             'defaultDevice':               dd_evaluation,
-                                             'numEpochs':                   eval_num_epochs,
-                                             'bucketBoundaries':            None})})
+    configs.update(
+        {'evaluation': RGNConfig(
+            args.config_file,
+            {
+            'fileQueueCapacity':           configs['run'].queueing['evaluation_file_queue_capacity'],
+            'batchQueueCapacity':          configs['run'].queueing['evaluation_batch_queue_capacity'],
+            'minAfterDequeue':             configs['run'].queueing['evaluation_min_after_dequeue'],
+            'shuffle':                     configs['run'].queueing['evaluation_shuffle'],
+            'tertiaryNormalization':       configs['run'].loss['evaluation_tertiary_normalization'],
+            'batchDependentNormalization': configs['run'].loss['evaluation_batch_dependent_normalization'],
+            'alphabetFile':                alphabet_file,
+            'functionsOnDevices':          fod_evaluation,
+            'defaultDevice':               dd_evaluation,
+            'numEpochs':                   eval_num_epochs,
+            'bucketBoundaries':            None})})
 
-    # Override included evaluation models with list from command-line if specified (assumes none are included and then includes ones that are specified)
+    # Override included evaluation models with list from command-line if specified 
+    # (assumes none are included and then includes ones that are specified)
     if args.evaluation_model:
         for prefix in ['', 'un']:
             for group in ['training', 'validation', 'testing']:
-                configs['run'].evaluation.update({'include_' + prefix + 'weighted_' + group: False})
+                configs['run'].evaluation.update(
+                    {'include_' + prefix + 'weighted_' + group: False})
         for entry in args.evaluation_model:
             configs['run'].evaluation.update({'include_' + entry: True})
 
-    # Override other command-lind arguments
-    if args.gpu_fraction: configs['training'].computing.update({'gpu_fraction': args.gpu_fraction})
-    if args.milestone: configs['run'].optimization.update({'validation_milestone': dict(args.milestone)})
-
-    # Ensure that correct validation reference is chosen if not predicting, and turn off evaluation loss if predicting
-    if not args.prediction_only:
-        if ((not configs['run'].evaluation['include_weighted_validation'])   and configs['run'].optimization['validation_reference'] == 'weighted') or \
-           ((not configs['run'].evaluation['include_unweighted_validation']) and configs['run'].optimization['validation_reference'] == 'unweighted'):
-            raise RuntimeError('Chosen validation reference is not included in run.')
-    else:
+    # If predicting, turn off evaluation loss.
+    # If not, ensure that correct validation reference is chosen.
+    if args.prediction_only:
         configs['evaluation'].loss['include'] = False
+    else:
+        # ??? what's the point of having both?
+        # TODO: include this in Raises error for description
+        if ((not configs['run'].evaluation['include_weighted_validation']) \
+        and configs['run'].optimization['validation_reference'] == 'weighted') \
+        or ((not configs['run'].evaluation['include_unweighted_validation']) \
+        and configs['run'].optimization['validation_reference'] == 'unweighted'):
+            raise RuntimeError('Chosen validation reference is not included in run.')
+        
 
+    # ??? but result is not >=1 
     # rescaling needed to adjust for how frequently loss_history is updated
     if configs['training'].curriculum['behavior'] == 'loss_change': 
-        configs['training'].curriculum[  'change_num_iterations'] //= configs['run'].io['evaluation_frequency'] # result must be >=1
-        configs['evaluation'].curriculum['change_num_iterations'] //= configs['run'].io['evaluation_frequency'] # ditto
+        configs['training'].curriculum['change_num_iterations'] \
+            //= configs['run'].io['evaluation_frequency'] # result must be >=1
+        configs['evaluation'].curriculum['change_num_iterations'] \
+            //= configs['run'].io['evaluation_frequency'] # ditto
 
     # create training model
     models = {}
@@ -398,14 +482,18 @@ def loop(args):
             print('Unexpected error: ', sys.exc_info()[0])
             raise
         finally:
-            if models['training']._is_started: models['training'].finish(session, save=False)
+            if models['training']._is_started: 
+                models['training'].finish(session, save=False)
             stdout_err_file_handle.close()
     else:
         # clean up post last checkpoint residue if any
         if global_step != 0:
             # remove future directories
-            last_log_step = sorted([int(os.path.basename(os.path.normpath(dir))) for dir in glob(os.path.join(run_dir, '*[0-9]'))])[-1]
-            for step in range(current_log_step + 1, last_log_step + 1): rmtree(os.path.join(run_dir, str(step))) 
+            last_log_step = sorted(
+                [int(os.path.basename(os.path.normpath(dir))) \
+                for dir in glob(os.path.join(run_dir, '*[0-9]'))])[-1]
+            for step in range(current_log_step + 1, last_log_step + 1): 
+                rmtree(os.path.join(run_dir, str(step))) 
 
             # remove future log entries in current log files
             log_file = os.path.join(log_dir, 'error.log')
@@ -418,7 +506,9 @@ def loop(args):
                             if step == global_step:
                                 f.truncate()
                                 break
-                        else: # reached end without seeing global_step, means checkpoint is ahead of last recorded log entry
+                        # reached end without seeing global_step, 
+                        # means checkpoint is ahead of last recorded log entry
+                        else:
                             break
 
         # training loop
@@ -428,28 +518,42 @@ def loop(args):
                 global_step, ids = models['training'].train(session)
 
                 # Set and create logging directory and files if needed
-                log_dir = os.path.join(run_dir, str((global_step // configs['run'].io['prediction_frequency']) + 1))
+                log_dir = os.path.join(
+                    run_dir, 
+                    str((global_step // configs['run'].io['prediction_frequency']) + 1))
                 log_file = os.path.join(log_dir, 'error.log')
-                if not os.path.exists(log_dir): os.makedirs(log_dir)
+                if not os.path.exists(log_dir): 
+                    os.makedirs(log_dir)
 
                 # Evaluate error, get diagnostics, and raise exceptions if necessary
                 if global_step % configs['run'].io['evaluation_frequency'] == 0:
-                    diagnostics = evaluate_and_log(log_file, configs, models, session)
+                    diagnostics = evaluate_and_log(
+                        log_file, 
+                        configs, 
+                        models, 
+                        session)
 
                     # restart if a milestone is missed
                     val_ref_set_prefix = 'un' if configs['run'].optimization['validation_reference'] == 'unweighted' else ''
                     min_loss_achieved = diagnostics[val_ref_set_prefix + 'wt_val_loss']['min_tertiary_loss_achieved_all']
                     for step, loss in configs['run'].optimization['validation_milestone'].iteritems():
                         if global_step >= step and min_loss_achieved > loss:
-                            raise MilestoneError('Milestone at step ' + str(global_step) + \
-                                                 ' missed because minimum loss achieved so far is ' + str(min_loss_achieved))
+                            raise MilestoneError(
+                                'Milestone at step ' \
+                                + str(global_step) \
+                                + ' missed because minimum loss achieved so far is ' \
+                                + str(min_loss_achieved))
 
                     # restart if gradients are zero
-                    if (diagnostics['min_grad'] == 0 and diagnostics['max_grad'] == 0) or \
-                       (configs['run'].evaluation['include_diagnostics'] and (np.isnan(diagnostics['min_grad']) or np.isnan(diagnostics['max_grad']))):
+                    if (diagnostics['min_grad'] == 0 \
+                    and diagnostics['max_grad'] == 0) \
+                    or (configs['run'].evaluation['include_diagnostics'] \
+                    and (np.isnan(diagnostics['min_grad']) \
+                    or np.isnan(diagnostics['max_grad']))):
                         raise DeadGradientError('Gradient is dead.')
 
-                # Predict structures. Currently assumes that weighted training and validation models are available, and fails if they're not.
+                # Predict structures. Currently assumes that weighted training 
+                # and validation models are available, and fails if they're not.
                 if global_step % configs['run'].io['prediction_frequency'] == 0:
                     predict_and_log(log_dir, configs, models, session)
 
@@ -469,7 +573,8 @@ def loop(args):
             if args.restart_on_dead_gradient:
                 print('Nan or dead gradient encountered; model will be resumed from last checkpoint if one exists, or restarted from scratch otherwise.')        
                 if not os.path.isdir(checkpoints_dir):
-                    for sub_dir in next(os.walk(run_dir))[1]: rmtree(os.path.join(run_dir, sub_dir)) # erase all old directories    
+                    for sub_dir in next(os.walk(run_dir))[1]: 
+                        rmtree(os.path.join(run_dir, sub_dir)) # erase all old directories    
                 restart = True
             else:
                 print('Nan or dead gradient encountered; model will be terminated.')        
@@ -480,7 +585,8 @@ def loop(args):
             if args.restart_on_missed_milestone:
                 print('Milestone missed; model will be restarted from scratch with an incremented seed.')
                 
-                for sub_dir in next(os.walk(run_dir))[1]: rmtree(os.path.join(run_dir, sub_dir)) # erase all old directories
+                for sub_dir in next(os.walk(run_dir))[1]: 
+                    rmtree(os.path.join(run_dir, sub_dir)) # erase all old directories
 
                 # modify configuration file with new seed
                 old_seed = configs['training'].initialization['graph_seed']
@@ -498,38 +604,64 @@ def loop(args):
 
         finally:
             # Wrap up (ask threads to stop, save final checkpoint, etc.)
-            if models['training']._is_started: models['training'].finish(session, save=args.checkpoint_on_finish)
+            if models['training']._is_started: 
+                models['training'].finish(session, save=args.checkpoint_on_finish)
             stdout_err_file_handle.close()
     
     return restart
 
-# main
 if __name__ == '__main__':
     # parse command-line arguments
-    parser = argparse.ArgumentParser(description="Run RGN model with specified parameters and configuration file.")
-    parser.add_argument('-d', '--base_directory',              default='.',         help='parent directory containing runs, data, checkpoints, and logs')
-    parser.add_argument('-p', '--prediction_only',             action='store_true', help='if set only a single batch of prediction is made with no training')
-    parser.add_argument('-e', '--evaluation_model',            action='append',     help='evaluation model to include (more than one is allowed). ' + \
-                                                                                         'must be of the form [un]weighted_[training,validation,testing].')
-    parser.add_argument('-m', '--milestone',                   type=lambda m: map(float, m.split(':')), \
-                                                               action='append',     help='milestone that the model must achieve or it will be restarted. ' + \
-                                                                                         'milestones must be of the form step:loss. multiple milestones can be set.')
-    parser.add_argument('-r', '--restart_on_dead_gradient',    action='store_true', help='if a zero gradient or nan (requires include_diagnostics) are encountered, ' + \
-                                                                                         'restart from last checkpoint or from scratch if no checkpoint is found. ' + \
-                                                                                         'default behavior is for model to terminate.')
-    parser.add_argument('-R', '--restart_on_missed_milestone', action='store_true', help='if a validation milestone is missed, restart from scratch with a new seed ' + \
-                                                                                         '(incremented by seed_increment). default behavior is for model to terminate.')
-    parser.add_argument('-c', '--checkpoint_on_finish',        action='store_true', help='checkpoint when the last epoch is completed.')
-    parser.add_argument('-s', '--seed_increment',              type=int, default=8, help='amount to increment seed by if milestones are not met')
-    parser.add_argument('-g', '--gpu',                         type=int,            help='GPU device to use')
+    parser = argparse.ArgumentParser(description="Run RGN model.")
+    parser.add_argument(
+        '-d', '--base_directory',
+        default='.',
+        help='Parent directory containing runs, data, checkpoints, and logs')
+    parser.add_argument(
+        '-p', '--prediction_only',
+        action='store_true', 
+        help='If set, make a prediction on a single batch.')
+    parser.add_argument(
+        '-e', '--evaluation_model',
+        action='append',     
+        help='Evaluation model to include (more than one is allowed). ' \
+              + 'Must be of the form [un]weighted_[training,validation,testing]. (???)')
+    parser.add_argument(
+        '-r', '--restart_on_dead_gradient',
+        action='store_true', 
+        help='If model encounters zero gradients or NAN, ' \
+              + 'restart from last checkpoint or from scratch if no checkpoint is found. ' \
+              + 'Default behavior is for model to terminate. (requires include_diagnostics)')
+    parser.add_argument(
+        '-R', '--restart_on_missed_milestone', 
+        action='store_true', 
+        help='If a validation milestone is missed, restart from scratch with a new seed ' \
+              + '(incremented by seed_increment). Default behavior is for model to terminate.')
+    parser.add_argument(
+        '-c', '--checkpoint_on_finish',
+        action='store_true', 
+        help='Checkpoint when the last epoch is completed.')
+    parser.add_argument(
+        '-s', '--seed_increment',
+        type=int, 
+        default=8, 
+        help='Amount to increment seed by if milestones are not met.')
+    parser.add_argument(
+        '-g', '--gpu',
+        type=int,            
+        help='GPU device to use.')
+    # TODO: is gpugrp even used?
     gpugrp = parser.add_mutually_exclusive_group()
-    gpugrp.add_argument('-a', '--fill_gpu',                    action='store_true', help='fill all available GPU memory')
-    gpugrp.add_argument('-f', '--gpu_fraction',                type=float,          help='fill only specified GPU memory fraction')
-    parser.add_argument('config_file',                                              help='configuration file containing specification of RGN model')
+    gpugrp.add_argument(
+        '-a', '--fill_gpu',
+        action='store_true', 
+        help='Fill all available GPU memory.')
+    parser.add_argument(
+        'config_file',
+        help='Configuration file containing specification of RGN model.')
     args = parser.parse_args()
 
     # set up signal for premature interruption
     signal.signal(signal.SIGINT, lambda _, __: exit(0))
 
-    # invoke inner loop
-    while loop(args): pass
+    while run_model(args): pass

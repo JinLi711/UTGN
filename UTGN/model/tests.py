@@ -2,10 +2,6 @@
 
 """
 
-__author__ = "Jin Li"
-__copyright__ = "Copyright 2019, University of Chicago"
-__license__ = "MIT"
-
 from copy import deepcopy
 from glob import glob
 from ast import literal_eval

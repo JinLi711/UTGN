@@ -10,9 +10,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-__author__ = "Jin Li"
-__copyright__ = "Copyright 2019, University of Chicago"
-__license__ = "MIT"
 
 
 from tensorflow.python.ops import array_ops

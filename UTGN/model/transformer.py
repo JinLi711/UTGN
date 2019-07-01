@@ -3,13 +3,11 @@
 Input tensor of shape [BATCH_SIZE, SEQ_LEN, FEATURES]
 Output tensor of the same shape.
 
-# TODO: Take a look at _higher_recurrence and perform similar 
+# TODO: Take a look at _higher_recurrence and perform similar
 functions(like updating config, etc)
+# TODO: add trainable parameters to collection 
+(check _recurrence)
 """
-
-__author__ = "Jin Li"
-__copyright__ = "Copyright 2019, University of Chicago"
-__license__ = "MIT"
 
 import numpy as np
 import tensorflow as tf
