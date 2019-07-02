@@ -23,6 +23,8 @@ The running configuration class contains attributes on:
 TODO: realign the dictionaries
 TODO: generalize for transformer
 TODO: label all parameters
+TODO: change around the dictionaries such that there 
+is an individual RNN dict and individual transformer dict.
 """
 
 from ast import literal_eval
@@ -83,50 +85,50 @@ class RGNConfig(Config):
 
     def _create_config(self, config):
         self.io = {
-            'name':                              config.get('name', None),
-            'num_edge_residues':             int(config.get('numEdgeResidues',       2)),
-            'num_evo_entries':               int(config.get('numEvoEntries',         20)),  # from calculating PSSM
-            'data_files':                        config.get('dataFiles',             None), # a list of file names, used by default (??? what files are we talking about?)
+            'name':                              config.get('name',                  None), # name to give the model
+            'num_edge_residues':             int(config.get('num_edge_residues',       2)), # end point residues to ignore because gold standard end point coordinates tend to be inaccurate
+            'num_evo_entries':               int(config.get('num_evo_entries',         20)),
+            'data_files':                        config.get('data_files',             None), # a list of file names, used by default (??? what files are we talking about?)
             'data_files_glob':                   config.get('dataFilesGlob',         None), # a glob, used if no data_files are supplied
-            'evaluation_sub_groups': eval_if_str(config.get('evaluationSubGroups',   [])),  # subgroups as seen in ProteinNet
-            'alphabet_file':                     config.get('alphabetFile',          None), # if passed this overrides alphabet_init
-            'checkpoints_directory':             config.get('checkpointsDirectory',  None),
-            'logs_directory':                    config.get('logsDirectory',         None),
-            'log_model_summaries':   str_or_bool(config.get('logModelSummaries',     True)),
-            'log_alphabet':          str_or_bool(config.get('logAlphabet',           False)),
-            'detailed_logs':         str_or_bool(config.get('detailedLogs',          True)),
-            'max_checkpoints':       int_or_none(config.get('maxCheckpoints',        None)),
-            'checkpoint_every_n_hours':      int(config.get('checkpointEveryNHours', 24))} # this is in addition to the max_checkpoints
+            'evaluation_sub_groups': eval_if_str(config.get('evaluation_sub_groups',   [])),  # subgroups for evaluation as seen in ProteinNet
+            'alphabet_file':                     config.get('alphabetFile',          None), # Alphabet file name. If passed this overrides alphabet_init
+            'checkpoints_directory':             config.get('checkpointsDirectory',  None), # Directory to retrieve or save model.
+            'logs_directory':                    config.get('logsDirectory',         None), # Directory to log summaries
+            'log_model_summaries':   str_or_bool(config.get('logModelSummaries',     True)), # whether to log model summaries
+            'log_alphabet':          str_or_bool(config.get('logAlphabet',           False)), # whether to log alphabet to diagnostics
+            'detailed_logs':         str_or_bool(config.get('detailedLogs',          True)), # Entails creating histograms.
+            'max_checkpoints':       int_or_none(config.get('maxCheckpoints',        None)), # maximum checkpoints to keep when saving model
+            'checkpoint_every_n_hours':      int(config.get('checkpointEveryNHours', 24))} # this is in addition to the max_checkpoints. Additional checkpoint after n hours.
 
         self.computing = {
-            'num_cpus':                             int(config.get('numCPUs',                        4)),
-            'num_recurrent_shards':                 int(config.get('numRecurrentShards',             1)),
-            'num_recurrent_parallel_iters':         int(config.get('numRecurrentParallelIters',      32)),
-            'default_device':                           config.get('defaultDevice',                  ''),
-            'functions_on_devices':         eval_if_str(config.get('functionsOnDevices',             {'/cpu:0': ['point_to_coordinate']})),
+            'num_cpus':                             int(config.get('numCPUs',                        4)), # number of CPUs to use
+            'num_recurrent_parallel_iters':         int(config.get('numRecurrentParallelIters',      32)), # number of iterations to run in parallel for RNN
+            'default_device':                           config.get('defaultDevice',                  ''), # default device to place operations
+            'functions_on_devices':         eval_if_str(config.get('functionsOnDevices',             {'/cpu:0': ['point_to_coordinate']})), # which functions to place in which device
             'gpu_fraction':                       float(config.get('gpuFraction',                    1)), # Fill only the fraction of GPU memory.
-            'allow_gpu_growth':             str_or_bool(config.get('allowGPUGrowth',                 False)),
-            'fill_gpu':                     str_or_bool(config.get('fillGPU',                        False)),
-            'num_reconstruction_fragments': int_or_none(config.get('numReconstructionFragments',     6)),
-            'num_reconstruction_parallel_iters':    int(config.get('numReconstructionParallelIters', 4))
+            'allow_gpu_growth':             str_or_bool(config.get('allowGPUGrowth',                 False)), # whether to allow GPU memory to grow as memory usage increases. Not needed if GPU fraction is 1.
+            'fill_gpu':                     str_or_bool(config.get('fillGPU',                        False)), # whether to fill up the GPU with allocated memory.
+            'num_reconstruction_fragments': int_or_none(config.get('numReconstructionFragments',     6)), # Number of fragments to reconstruct in parallel. Used for creating the 3D structure.
+            'num_reconstruction_parallel_iters':    int(config.get('numReconstructionParallelIters', 4)) # Number of parallel iterations for creating the 3D structure.
         }
 
+        # TODO: see if I can use any of these ideas for transformer
         self.initialization = {
             'graph_seed':                        int_or_none(config.get('randSeed',                      None)),
-            'angle_shift':                       eval_if_str(config.get('angleShift',                    [0., 0., 0.])),
+            'angle_shift':                       eval_if_str(config.get('angleShift',                    [0., 0., 0.])), # The angles by which to shift the predicted dihedral angles.
             'recurrent_forget_bias':                   float(config.get('recurrentForgetBias',           1)),                               
             'recurrent_init':                    eval_if_str(config.get('recurrentInit',                 None)), # can be list if HO
-            'recurrent_seed':                    int_or_none(config.get('recurrentSeed',                 None)),
+            'recurrent_seed':                    int_or_none(config.get('recurrentSeed',                 None)), # seed
             'recurrent_out_proj_init':           eval_if_str(config.get('recurrentOutProjInit',          {'base': {}, 'bias': {}})),
-            'recurrent_out_proj_seed':           int_or_none(config.get('recurrentOutProjSeed',          None)),
+            'recurrent_out_proj_seed':           int_or_none(config.get('recurrentOutProjSeed',          None)), # seed
             'recurrent_nonlinear_out_proj_init': eval_if_str(config.get('recurrentNonlinearOutProjInit', {'base': {}, 'bias': {}})),
-            'recurrent_nonlinear_out_proj_seed': int_or_none(config.get('recurrentNonlinearOutProjSeed', None)),
+            'recurrent_nonlinear_out_proj_seed': int_or_none(config.get('recurrentNonlinearOutProjSeed', None)), # seed
             'alphabet_init':                     eval_if_str(config.get('alphabetInit',                  {})),
-            'alphabet_seed':                     int_or_none(config.get('alphabetSeed',                  None)),
-            'queue_seed':                        int_or_none(config.get('queueSeed',                     None)),
-            'dropout_seed':                      int_or_none(config.get('dropoutSeed',                   None)),
-            'zoneout_seed':                      int_or_none(config.get('zoneoutSeed',                   None)),
-            'evolutionary_multiplier':                 float(config.get('evolutionaryMultiplier',        1))
+            'alphabet_seed':                     int_or_none(config.get('alphabetSeed',                  None)), # seed
+            'queue_seed':                        int_or_none(config.get('queueSeed',                     None)), # seed for queuing and shuffling
+            'dropout_seed':                      int_or_none(config.get('dropoutSeed',                   None)), # seed for all the dropouts
+            'zoneout_seed':                      int_or_none(config.get('zoneoutSeed',                   None)), # seed for zone out wrapper
+            'evolutionary_multiplier':                 float(config.get('evolutionaryMultiplier',        1)) # Number to multiply the PSSM inputs.
         }
 
         self.optimization = {
@@ -142,31 +144,31 @@ class RGNConfig(Config):
             'gradient_threshold':        float(config.get('gradientThreshold',    'inf')),
             'recurrent_threshold': flt_or_none(config.get('recurrentThreshold',   None)),  # only TF-based RNNs
             'alphabet_temperature':      float(config.get('alphabetTemperature',  1.0)),
-            'batch_size':                  int(config.get('batchSize',            256)),
-            'num_steps':                   int(config.get('maxSeqLength',         500)),   # Longer seqs removed, shorter ones padded. Max irrespective of curriculum
+            'batch_size':                  int(config.get('batchSize',            256)),   # batch size
+            'num_steps':                   int(config.get('maxSeqLength',         500)),
             'num_epochs':          int_or_none(config.get('numEpochs',            None))
         }
 
         self.queueing = {
-            'file_queue_capacity':        int(config.get('fileQueueCapacity',        1000)),  # Defaults make sense if each file has ~100 sequences
-            'batch_queue_capacity':       int(config.get('batchQueueCapacity',       10000)),
-            'min_after_dequeue':          int(config.get('minAfterDequeue',          500)),
-            'shuffle':            str_or_bool(config.get('shuffle',                  True)),
+            'file_queue_capacity':        int(config.get('fileQueueCapacity',        1000)),  # Defaults make sense if each file has ~100 sequences. Capacity when queuing.
+            'batch_queue_capacity':       int(config.get('batchQueueCapacity',       10000)), # Batch capacity.
+            'min_after_dequeue':          int(config.get('minAfterDequeue',          500)), # Minimum  number of elements that will remain in the queue after a dequeue
+            'shuffle':            str_or_bool(config.get('shuffle',                  True)), # whether to shuffle or not
             'bucket_boundaries':  eval_if_str(config.get('bucketBoundaries',         None)),
-            'num_evaluation_invocations': int(config.get('numEvaluationInvocations', 1))
+            'num_evaluation_invocations': int(config.get('numEvaluationInvocations', 1)) # must be 1 for training
         }
 
         self.curriculum = {
             'mode':                str_or_none(config.get('currMode',            None)), # can be 'loss', 'length'
-            'behavior':            str_or_none(config.get('currBehavior',        None)),
-            'slope':                     float(config.get('currSlope',           1.0)),
-            'base':                      float(config.get('currBase',            4.0)),
-            'rate':                      float(config.get('currRate',            0.002)),
-            'threshold':                 float(config.get('currThreshold',       5.0)),
-            'change_num_iterations':       int(config.get('currChangeNumIters',  5)),
-            'sharpness':                 float(config.get('currSharpness',       20.)),
-            'update_loss_history': str_or_bool(config.get('updateLossHistory',   False)),
-            'loss_history_subgroup':           config.get('lossHistorySubgroup', 'all')
+            'behavior':            str_or_none(config.get('currBehavior',        None)), # can be 'fixed_rate', 'loss_threshold', 'loss_change'. If none, no cirriculum updates.
+            'slope':                     float(config.get('currSlope',           1.0)), # influences the weights for drmsd
+            'base':                      float(config.get('currBase',            4.0)), # influences the weights for drmsd
+            'rate':                      float(config.get('currRate',            0.002)), # rate of curr update.
+            'threshold':                 float(config.get('currThreshold',       5.0)), # use if 'loss_threshold'
+            'change_num_iterations':       int(config.get('currChangeNumIters',  5)), # (???)
+            'sharpness':                 float(config.get('currSharpness',       20.)), # use for 'loss_change'
+            'update_loss_history': str_or_bool(config.get('updateLossHistory',   False)), # whether to update loss history
+            'loss_history_subgroup':           config.get('lossHistorySubgroup', 'all') # (???)
         }
 
         self.architecture = {
@@ -206,11 +208,11 @@ class RGNConfig(Config):
         }
 
         self.loss = {
-            'include':                       str_or_bool(config.get('includeLoss',                 True)),
-            'tertiary_weight':                     float(config.get('tertiaryWeight',              1.0)),
-            'tertiary_normalization':                    config.get('tertiaryNormalization',       'zeroth'),
-            'batch_dependent_normalization': str_or_bool(config.get('batchDependentNormalization', True)),
-            'atoms':                                     config.get('lossAtoms',                   'c_alpha')
+            'include':                       str_or_bool(config.get('includeLoss',                 True)), # whether to perform loss operation
+            'tertiary_weight':                     float(config.get('tertiaryWeight',              1.0)), # weights for tertiary loss. Should be > 0.
+            'tertiary_normalization':                    config.get('tertiaryNormalization',       'zeroth'), # influences the loss factor
+            'batch_dependent_normalization': str_or_bool(config.get('batchDependentNormalization', True)), # (???)
+            'atoms':                                     config.get('lossAtoms',                   'c_alpha') # which atoms to calc 3D structure
         }
 
 class RunConfig(Config):
@@ -223,24 +225,24 @@ class RunConfig(Config):
         self.names = {
             'run':                      config.get('runName'),
             'dataset':                  config.get('datasetName'),
-            'alphabet':                 config.get('alphabetName', None)
+            'alphabet':                 config.get('alphabetName', None) # Alphabet name
         }
 
         self.io = {
-            'full_training_glob':       config.get('fullTrainingGlob',     '*'),
-            'sample_training_glob':     config.get('sampleTrainingGlob',   '*'),
-            'full_validation_glob':     config.get('fullValidationGlob',   '*'),
-            'sample_validation_glob':   config.get('sampleValidationGlob', '*'),
-            'full_testing_glob':        config.get('fullTestingGlob',      '*'),
-            'sample_testing_glob':      config.get('sampleTestingGlob',    '*'),
+            'full_training_glob':       config.get('fullTrainingGlob',     '*'), # path
+            'sample_training_glob':     config.get('sampleTrainingGlob',   '*'), # path
+            'full_validation_glob':     config.get('fullValidationGlob',   '*'), # path
+            'sample_validation_glob':   config.get('sampleValidationGlob', '*'), # path
+            'full_testing_glob':        config.get('fullTestingGlob',      '*'), # path
+            'sample_testing_glob':      config.get('sampleTestingGlob',    '*'), # path
             'evaluation_frequency': int(config.get('evaluationFrequency',  10)),
             'prediction_frequency': int(config.get('predictionFrequency',  100)),
             'checkpoint_frequency': int(config.get('checkpointFrequency',  10000))
         }
 
         self.computing = {
-            'training_device':   config.get('trainingDevice',   'GPU'),
-            'evaluation_device': config.get('evaluationDevice', 'GPU')
+            'training_device':   config.get('trainingDevice',   'GPU'), # where to put training operations
+            'evaluation_device': config.get('evaluationDevice', 'GPU') # where to put evaluation operations
         }
 
         # validationMilestone:
@@ -264,24 +266,24 @@ class RunConfig(Config):
         }
 
         self.evaluation = {
-            'num_training_samples':                  int(config.get('numTrainingSamples',                    98)),
-            'num_validation_samples':                int(config.get('numValidationSamples',                  100)),
-            'num_testing_samples':                   int(config.get('numTestingSamples',                     100)),
+            'num_training_samples':                  int(config.get('num_training_samples',                    98)), # train batch size
+            'num_validation_samples':                int(config.get('numValidationSamples',                  100)), # validation batch size
+            'num_testing_samples':                   int(config.get('numTestingSamples',                     100)), # testing batch size
             'num_training_invocations':              int(config.get('numTrainingInvocations',                1)),     # evaluation (! actual training)
-            'num_validation_invocations':            int(config.get('numValidationInvocations',              1)), 
-            'num_testing_invocations':               int(config.get('numTestingInvocations',                 1)), 
-            'include_weighted_training':     str_or_bool(config.get('includeWeightedTraining',               False)),  
-            'include_weighted_validation':   str_or_bool(config.get('includeWeightedValidation',             False)),  
-            'include_weighted_testing':      str_or_bool(config.get('includeWeightedTesting',                False)),  
+            'num_validation_invocations':            int(config.get('numValidationInvocations',              1)),
+            'num_testing_invocations':               int(config.get('numTestingInvocations',                 1)),
+            'include_weighted_training':     str_or_bool(config.get('includeWeightedTraining',               False)),  # introduce weights
+            'include_weighted_validation':   str_or_bool(config.get('includeWeightedValidation',             False)),  # introduce weights
+            'include_weighted_testing':      str_or_bool(config.get('includeWeightedTesting',                False)),  # introduce weights
             'include_unweighted_training':   str_or_bool(config.get('includeUnweightedTraining',             False)),  
             'include_unweighted_validation': str_or_bool(config.get('includeUnweightedValidation',           False)), 
             'include_unweighted_testing':    str_or_bool(config.get('includeUnweightedTesting',              False)),
-            'include_diagnostics':           str_or_bool(config.get('includeDiagnostics',                    True))
+            'include_diagnostics':           str_or_bool(config.get('includeDiagnostics',                    True))  # whether to run diagnostics
         }
 
         self.loss = {
-            'training_tertiary_normalization':          config.get('trainingTertiaryNormalization',         'first'),
-            'evaluation_tertiary_normalization':        config.get('evaluationTertiaryNormalization',       'first'),
-            'training_batch_dependent_normalization':   config.get('trainingBatchDependentNormalization',   True),
-            'evaluation_batch_dependent_normalization': config.get('evaluationBatchDependentNormalization', True)
+            'training_tertiary_normalization':          config.get('trainingTertiaryNormalization',         'first'), # not even used ???
+            'evaluation_tertiary_normalization':        config.get('evaluationTertiaryNormalization',       'first'), # not even used ???
+            'training_batch_dependent_normalization':   config.get('trainingBatchDependentNormalization',   True), # not even used ???
+            'evaluation_batch_dependent_normalization': config.get('evaluationBatchDependentNormalization', True) # not even used ???
         }

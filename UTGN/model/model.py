@@ -237,7 +237,9 @@ class RGNModel(object):
 
             # create alphabet if needed and if it will be shared between layers, 
             # otherwise set to None so that _dihedrals takes care of it
-            alphabet_config = merge_dicts(config.architecture, config.initialization)
+            alphabet_config = merge_dicts(
+                config.architecture, 
+                config.initialization)
             if alphabet_config['is_alphabetized'] \
             and alphabet_config['single_or_no_alphabet']:
                 alphabet = _alphabet(mode, alphabet_config)
@@ -394,8 +396,9 @@ class RGNModel(object):
                                         'min_tertiary_loss_' + group_id + '_op': min_loss_op})
 
                             if config.io['log_model_summaries']: 
-                                tf.add_to_collection(config.io['name'] + '_tertiary_losses', 
-                                tertiary_loss)
+                                tf.add_to_collection(
+                                    config.io['name'] + '_tertiary_losses', 
+                                    tertiary_loss)
                             effective_tertiary_loss = config.loss['tertiary_weight'] * tertiary_loss
 
                         # Final loss and related housekeeping
@@ -406,7 +409,9 @@ class RGNModel(object):
                                 tf.tuple(update_ops), 
                                 loss)
                         if config.io['log_model_summaries']: 
-                            tf.add_to_collection(config.io['name'] + '_losses', loss)
+                            tf.add_to_collection(
+                                config.io['name'] + '_losses', 
+                                loss)
                         if group_id == config.curriculum['loss_history_subgroup']: 
                             curriculum_loss = loss
 
@@ -491,13 +496,13 @@ class RGNModel(object):
             for invocation in range(num_invocations):
                 if invocation < num_invocations - 1:
                     evaluation_dict = ops_to_dict(
-                        session, 
+                        session,
                         self._evaluation_ops)
                 else:
                     evaluation_dict = ops_to_dict(
-                        session, 
+                        session,
                         merge_dicts(
-                            self._evaluation_ops, 
+                            self._evaluation_ops,
                             self._last_evaluation_ops))
 
             # write event summaries to disk
@@ -689,12 +694,12 @@ class RGNModel(object):
             if session is None:
                 session = tf.Session(
                     config=tf.ConfigProto(
-                    allow_soft_placement=False,
-                    inter_op_parallelism_threads=self.config.computing['num_cpus'],
-                    intra_op_parallelism_threads=self.config.computing['num_cpus'],
-                    gpu_options=tf.GPUOptions(
-                        per_process_gpu_memory_fraction=gpu_fraction,
-                        allow_growth=self.config.computing['allow_gpu_growth'])))
+                        allow_soft_placement=False,
+                        inter_op_parallelism_threads=self.config.computing['num_cpus'],
+                        intra_op_parallelism_threads=self.config.computing['num_cpus'],
+                        gpu_options=tf.GPUOptions(
+                            per_process_gpu_memory_fraction=gpu_fraction,
+                            allow_growth=self.config.computing['allow_gpu_growth'])))
 
             # retrieve latest checkpoint, if any
             latest_checkpoint = tf.train.latest_checkpoint(
@@ -861,7 +866,8 @@ def _dataflow(config, max_length):
         randomizer_queue = tf.RandomShuffleQueue(
             capacity=config['batch_queue_capacity'],
             min_after_dequeue=config['min_after_dequeue'],
-            dtypes=dtypes, seed=config['queue_seed'],
+            dtypes=dtypes, 
+            seed=config['queue_seed'],
             name='randomization_queue')
         randomizer_enqueue_op = randomizer_queue.enqueue(inputs)
         randomizer_qr = tf.train.QueueRunner(
@@ -1747,7 +1753,8 @@ def _accumulate_loss(config, numerator, denominator, name_prefix=''):
         # return simple loss
         accumulated_loss = tf.divide(
             numerator,
-            denominator, name=name_prefix)
+            denominator, 
+            name=name_prefix)
         update_op = reduce_op = tf.no_op()
     else:
         # create accumulator variables. 

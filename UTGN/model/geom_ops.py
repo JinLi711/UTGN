@@ -213,7 +213,7 @@ def point_to_coordinate(pt, num_fragments=6, parallel_iterations=4, swap_memory=
         num_fragments: Number of fragments to reconstruct in parallel. If None, the number is chosen adaptively
 
     Returns:
-            [NUM_STEPS x NUM_DIHEDRALS, BATCH_SIZE, NUM_DIMENSIONS] 
+        [NUM_STEPS x NUM_DIHEDRALS, BATCH_SIZE, NUM_DIMENSIONS] 
     """                             
 
     with tf.name_scope(name, 'point_to_coordinate', [pt]) as scope:

@@ -13,8 +13,8 @@ Below are the major options along with their descriptions and allowed values. No
 | --- | --- | --- |
 | runName | string | user-specified model name |
 | datasetName | string | user-specified dataset name |
-| numEvoEntries | integer | number of entries present in evolutionary profiles |
-| maxSeqLength | integer | longest acceptable protein (longer proteins will be ignored) |
+| num_evo_entries | integer | Number of entries present in evolutionary profiles. In this case, it is from calculating PSSM. |
+| maxSeqLength | integer | Longest acceptable protein. Longer proteins will be ignored and shorter ones will be padded. Max irrespective of curriculum. |
 | trainingShuffle | boolean | if True shuffle training set |
 | evaluationShuffle | boolean | if True shuffle evaluation set |
 | evaluationFrequency | integer | number of iterations between evaluations | 
