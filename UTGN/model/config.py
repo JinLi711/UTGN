@@ -191,7 +191,8 @@ class RGNConfig(Config):
             'alphabet_size':                            eval_if_str(config.get('alphabetSize',                         None)), # pHO
             'alphabet_trainable':                       str_or_bool(config.get('alphabetTrainable',                    True)),
             'include_primary':                          str_or_bool(config.get('includePrimary',                       True)),
-            'include_evolutionary':                     str_or_bool(config.get('includeEvolutionary',                  False))
+            'include_evolutionary':                     str_or_bool(config.get('includeEvolutionary',                  False)),
+            'is_transformer':                     str_or_bool(config.get('is_transformer',                  True))
         }
 
         self.regularization = {

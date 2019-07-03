@@ -195,10 +195,10 @@ def predict_and_log(log_dir, configs, models, session):
                             np.savetxt(
                                 os.path.join(outputs_dir, idx + '.tertiary'), 
                                 dict_['tertiary'], header='\n')
-                        if 'recurrent_states' in dict_:
-                            np.savetxt(
-                                os.path.join(outputs_dir, idx + '.recurrent_states'), 
-                                dict_['recurrent_states'])
+                        # if 'recurrent_states' in dict_:
+                        #     np.savetxt(
+                        #         os.path.join(outputs_dir, idx + '.recurrent_states'), 
+                        #         dict_['recurrent_states'])
 
 def run_model(args):
     """Either train a model or use it to predict.
@@ -470,6 +470,11 @@ def run_model(args):
     current_log_step = (global_step // configs['run'].io['prediction_frequency']) + 1
     log_dir = os.path.join(run_dir, str(current_log_step))
     restart = False
+
+    # trainable_params = count_trainable_params()
+    # print("\n\n\n*** Trainable Parameters: {} ***".format(trainable_params))
+    # from sys import exit
+    # exit()
 
     # predict or train depending on set mode behavior
     if args.prediction_only:

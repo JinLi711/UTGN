@@ -152,3 +152,12 @@ def dict_to_inits(dict_, seed=None, dtype=tf.float32):
     inits = {k: dict_to_init(v, seed, dtype) for k, v in dict_.iteritems()}
 
     return inits
+
+
+def count_trainable_params():
+    """Count the total trainable parameters. """
+
+    total_params = [np.prod(v.get_shape().as_list()) \
+                    for v in tf.trainable_variables()]
+
+    return np.sum(total_params)

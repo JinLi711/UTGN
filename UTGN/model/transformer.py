@@ -4,7 +4,7 @@ Input tensor of shape [BATCH_SIZE, SEQ_LEN, FEATURES]
 Output tensor of the same shape.
 
 # TODO: Take a look at _higher_recurrence and perform similar
-functions(like updating config, etc)
+functions (like updating config, etc)
 # TODO: add trainable parameters to collection 
 (check _recurrence)
 """
