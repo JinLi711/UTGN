@@ -274,7 +274,7 @@ def train():
     def __print_seq(seq):
         return ' '.join([vocab_str[i] for i in seq])
 
-    return
+    # return
     with tf.Session() as session:
         session.run(tf.global_variables_initializer())
 
