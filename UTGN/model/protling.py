@@ -7,6 +7,7 @@ TODO: rename protling to something more descriptive
 import os
 import sys
 import signal
+import time
 import argparse
 import fileinput
 from copy import deepcopy
@@ -669,4 +670,12 @@ if __name__ == '__main__':
     # set up signal for premature interruption
     signal.signal(signal.SIGINT, lambda _, __: exit(0))
 
+    start_time = time.time()
+
     while run_model(args): pass
+
+    end_time = time.time()
+    hours_elapsed = (end_time - start_time) / 3600
+    print("*** Train time: {} hours ***".format(hours_elapsed))
+
+    
