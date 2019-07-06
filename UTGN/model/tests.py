@@ -74,7 +74,7 @@ def assign_weights(session, weight_dict, scope='RGN'):
 
     with tf.variable_scope(scope, reuse=True):
         assignments = []
-        for key, val in weight_dict.iteritems():
+        for key, val in weight_dict.items():
             var = tf.get_variable(key)
             assignments.append(var.assign(val.astype('float32')))
         session.run(assignments)
@@ -109,7 +109,7 @@ def dicts_to_matched_tuples(dict1, dict2):
     """
 
     try:
-        return [(dict1[k], dict2[k]) for k in set(dict1.keys() + dict2.keys())]
+        return [(dict1[k], dict2[k]) for k in set(list(dict1.keys()) + list(dict2.keys()))]
     except KeyError:
         raise RuntimeError('Dictionaries are not comparable.')
 
@@ -152,9 +152,9 @@ class CanonicalTest(tf.test.TestCase):
 
     def _runModel(self, sess, iteration, m_train, m_evals, weight_dict, node_dict, variable_dict, rtol, atol, restart_every_iteration, scope='RGN'):
         # fetch nodes and expected values
-        nodes = node_dict.keys()
-        vars_ = variable_dict.keys()
-        valuess_expected = node_dict.values() + variable_dict.values()
+        nodes = list(node_dict.keys())
+        vars_ = list(variable_dict.keys())
+        valuess_expected = list(node_dict.values()) + list(variable_dict.values())
         num_entries = len(nodes) + len(vars_)
 
         # set up
@@ -199,7 +199,7 @@ class CanonicalTest(tf.test.TestCase):
         """
 
         # make sure number of iterations between and within dicts match and that some dict was passed
-        num_iterationss = set([len(val) for dict_ in [node_dict, variable_dict] for val in dict_.values()])
+        num_iterationss = set([len(val) for dict_ in [node_dict, variable_dict] for val in list(dict_.values())])
         if len(num_iterationss) > 1:
             raise RuntimeError('Number of iterations do not match in dicts.')
         elif len(num_iterationss) == 0:
@@ -2042,7 +2042,7 @@ class IdiosyncraticTest(tf.test.TestCase):
                 # due to the shift to new initialization coordinates. the values are stored on disk because they're too much to dump here.
                 for i in range(1, 3):
                     m_train.train(sess)
-                    preds_actual = {id_: dict_['tertiary'] for id_, dict_ in m_eval.predict(sess).iteritems()}
+                    preds_actual = {id_: dict_['tertiary'] for id_, dict_ in m_eval.predict(sess).items()}
                     with open(artifacts_dir + 'predictions' + str(i), 'r') as f: preds_expected = literal_eval(f.read())
                     for pred_actual, pred_expected in dicts_to_matched_tuples(preds_actual, preds_expected):
                        self.assertAllClose(pred_expected, pred_actual, rtol=1e-1, atol=1e-1)
@@ -2152,7 +2152,7 @@ class IdiosyncraticTest(tf.test.TestCase):
 
                 m_train.finish(sess, save=False, close_session=False, reset_graph=False) 
 
-        for k, v in d_train_1.iteritems():
+        for k, v in d_train_1.items():
             self.assertAllEqual(True,  np.array_equal(d_train_2[k], v))
             self.assertAllEqual(False, np.array_equal(d_train_3[k], v))
 
@@ -2199,7 +2199,7 @@ class IdiosyncraticTest(tf.test.TestCase):
             try:
                 d = {var.name: var.eval(session=sess).flatten() for var in tf.get_collection(tf.GraphKeys.WEIGHTS)}
                 test_num = 0
-                for k, v in d.iteritems():
+                for k, v in d.items():
                     if 'rnn' in k:
                         test_num = test_num + 1
                         self.assertAllClose(2.3, np.mean(v), rtol=5e-1, atol=5e-1)
@@ -2210,7 +2210,7 @@ class IdiosyncraticTest(tf.test.TestCase):
                         self.assertAllClose(0.01, np.std(v),  rtol=5e-1, atol=5e-1)  
 
                 d = {var.name: var.eval(session=sess).flatten() for var in tf.get_collection(tf.GraphKeys.BIASES)}
-                for k, v in d.iteritems():
+                for k, v in d.items():
                     if 'linear' in k: # this is really quite a silly test because the sample size is only 3! 
                         test_num = test_num + 1
                         self.assertAllClose(3.0, np.mean(v), rtol=0.3, atol=1)
@@ -2241,7 +2241,7 @@ class IdiosyncraticTest(tf.test.TestCase):
 
             try:
                 test_num = 0
-                for k, v in d.iteritems():
+                for k, v in d.items():
                     if 'rnn' in k and 'diag' not in k: # skipping peephole connections because there are very few weights and thus very high variance, resulting in overly sensitive tests
                         test_num = test_num + 1
                         self.assertAllClose(np.mean(v), -2.3,       rtol=5e-1, atol=5e-1)
@@ -2259,7 +2259,7 @@ class IdiosyncraticTest(tf.test.TestCase):
                         self.assertAllClose(np.max(v),  -10.2 + 3.1, rtol=5e-1, atol=5e-1)
 
                 d = {var.name: var.eval(session=sess).flatten() for var in tf.get_collection(tf.GraphKeys.BIASES)}
-                for k, v in d.iteritems():
+                for k, v in d.items():
                     if 'linear_dihedrals' in k:
                         test_num = test_num + 1
                         self.assertAllClose(np.mean(v), -1.6,     rtol=1, atol=1)
@@ -2569,7 +2569,7 @@ class IdiosyncraticTest(tf.test.TestCase):
                                                  '40':  [36.924805, 176.66263, 250.02922],
                                                  '50':  [45.720215, 212.67812, 299.69229],
                                                  '70':  [49.584141, 225.6004,  317.39334],
-                                                 '90':  [44.106983, 206.41902, 290.78809]}.iteritems():
+                                                 '90':  [44.106983, 206.41902, 290.78809]}.items():
                         self.assertAllClose(l_expected[i], l_actual['tertiary_loss_' + subgroup], rtol=5e-2, atol=5e-2)        
                     m_train.train(sess)
             finally:
@@ -2624,7 +2624,7 @@ class IdiosyncraticTest(tf.test.TestCase):
                                                  '40':  [50.637138, 323.91776, 231.41081],
                                                  '50':  [64.921356, 397.58215, 287.76514],
                                                  '70':  [74.773926, 452.44659, 328.10721],
-                                                 '90':  [70.957344, 429.28339, 311.2869]}.iteritems():
+                                                 '90':  [70.957344, 429.28339, 311.2869]}.items():
                         self.assertAllClose(l_expected[i], l_actual['tertiary_loss_' + subgroup], rtol=5e-2, atol=5e-2)        
                     m_train.train(sess)
             finally:
@@ -2679,7 +2679,7 @@ class IdiosyncraticTest(tf.test.TestCase):
                                                  '40':  [63.078617, 247.08490, 153.70581],
                                                  '50':  [81.458519, 303.73416, 191.37691],
                                                  '70':  [92.466843, 344.84088, 217.63127],
-                                                 '90':  [94.226669, 346.87625, 219.36301]}.iteritems():
+                                                 '90':  [94.226669, 346.87625, 219.36301]}.items():
                         self.assertAllClose(l_expected[i], l_actual['tertiary_loss_' + subgroup], rtol=5e-2, atol=5e-2)        
                     m_train.train(sess)
             finally:
