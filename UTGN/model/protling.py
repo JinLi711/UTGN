@@ -20,6 +20,9 @@ from utils import *
 from model import RGNModel
 from config import RGNConfig, RunConfig
 
+# for mac, to avoid OMP: Error #15
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 # directory names
 RUNS_DIRNAME = 'runs'
 DATAS_DIRNAME = 'data'
@@ -170,7 +173,7 @@ def predict_and_log(log_dir, configs, models, session):
     # (wt vs. unwt) can be used for the training and test sets as well
     val_ref_set_prefix = 'un' if configs['run'].optimization['validation_reference'] == 'unweighted' else ''
 
-    for label, model in models.iteritems():
+    for label, model in models.items():
         if 'eval' in label:
             generate = True
 
@@ -190,7 +193,7 @@ def predict_and_log(log_dir, configs, models, session):
 
                 for _ in range(configs[label].queueing['num_evaluation_invocations']):
                     dicts = model.predict(session)
-                    for idx, dict_ in dicts.iteritems():
+                    for idx, dict_ in dicts.items():
                         if 'tertiary'  in dict_:
                             np.savetxt(
                                 os.path.join(outputs_dir, idx + '.tertiary'), 
@@ -541,7 +544,7 @@ def run_model(args):
                     # restart if a milestone is missed
                     val_ref_set_prefix = 'un' if configs['run'].optimization['validation_reference'] == 'unweighted' else ''
                     min_loss_achieved = diagnostics[val_ref_set_prefix + 'wt_val_loss']['min_tertiary_loss_achieved_all']
-                    for step, loss in configs['run'].optimization['validation_milestone'].iteritems():
+                    for step, loss in configs['run'].optimization['validation_milestone'].items():
                         if global_step >= step and min_loss_achieved > loss:
                             raise MilestoneError(
                                 'Milestone at step ' \
@@ -597,7 +600,7 @@ def run_model(args):
                 old_seed = configs['training'].initialization['graph_seed']
                 new_seed = old_seed + args.seed_increment
                 for line in fileinput.input(args.config_file, inplace=True):
-                    print line.replace('randSeed ' + str(old_seed), 'randSeed ' + str(new_seed)),
+                    print (line.replace('randSeed ' + str(old_seed), 'randSeed ' + str(new_seed))),
                 
                 restart = True
             else:

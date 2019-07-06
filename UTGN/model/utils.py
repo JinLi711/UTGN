@@ -73,7 +73,9 @@ def ops_to_dict(session, ops):
         dict
     """
 
-    dict_ = dict(zip(ops.keys(), session.run(ops.values())))
+    dict_ = dict(zip(
+        ops.keys(), 
+        session.run(list(ops.values()))))
 
     return dict_
 
@@ -149,7 +151,7 @@ def dict_to_inits(dict_, seed=None, dtype=tf.float32):
         dict of TF initialization
     """
 
-    inits = {k: dict_to_init(v, seed, dtype) for k, v in dict_.iteritems()}
+    inits = {k: dict_to_init(v, seed, dtype) for k, v in dict_.items()}
 
     return inits
 

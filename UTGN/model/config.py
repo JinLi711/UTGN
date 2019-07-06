@@ -27,14 +27,15 @@ TODO: change around the dictionaries such that there
 is an individual RNN dict and individual transformer dict.
 """
 
+from builtins import str
 from ast import literal_eval
 
 # functions for reading in parsed config file
 flt_or_none = lambda x: float(x) if x is not None else None
 int_or_none = lambda x: int(x) if x is not None else None
-str_or_none = lambda x: None if isinstance(x, basestring) and x == 'none' else x
-str_or_bool = lambda x: (x == 'true' or x == 'True') if isinstance(x, basestring) else x
-eval_if_str = lambda x: literal_eval(x) if isinstance(x, basestring) else x
+str_or_none = lambda x: None if isinstance(x, str) and x == 'none' else x
+str_or_bool = lambda x: (x == 'true' or x == 'True') if isinstance(x, str) else x
+eval_if_str = lambda x: literal_eval(x) if isinstance(x, str) else x
 
 class Config(object):
     """Class for configuration settings.

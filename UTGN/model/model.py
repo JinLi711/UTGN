@@ -10,7 +10,7 @@ Tensors have this orientation unless otherwise labeled.
 import os
 from glob import glob
 from copy import deepcopy
-from itertools import izip_longest
+from six.moves import zip_longest
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
@@ -251,7 +251,7 @@ class RGNModel(object):
             if config.architecture['is_transformer']:
                 recurrent_states = None
                 keep_prob = 0.5
-                n_layers = 3
+                n_layers = 2
                 heads = 2
                 d_ff = 128
                 # dense_input_dim = 128
@@ -366,7 +366,7 @@ class RGNModel(object):
                            if mode == 'evaluation' else {}
                 filters.update({'all': tf.tile([True], tf.shape(ids))})
 
-                for group_id, group_filter in filters.iteritems():
+                for group_id, group_filter in filters.items():
                     with tf.variable_scope(group_id):
                         # Tertiary loss
                         effective_tertiary_loss = 0.
@@ -444,7 +444,7 @@ class RGNModel(object):
                 # get grads, training ops
                 self._global_step, minimize_op, grads_and_vars_dict = _training(
                     config.optimization, loss)
-                self._grads_and_vars_length = len(grads_and_vars_dict) / 2
+                self._grads_and_vars_length = len(grads_and_vars_dict) // 2
 
                 # update relevant op dicts
                 # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -521,7 +521,7 @@ class RGNModel(object):
 
             # remove non-user facing ops
             if pretty: 
-                [evaluation_dict.pop(k) for k in evaluation_dict.keys() if 'op' in k]
+                [evaluation_dict.pop(k) for k in list(evaluation_dict) if 'op' in k]
 
             return evaluation_dict
 
@@ -543,14 +543,15 @@ class RGNModel(object):
             prediction_dict = ops_to_dict(session, self._prediction_ops)
 
             # process tertiary sequences
-            if prediction_dict.has_key('coordinates'): 
+            # if prediction_dict.has_key('coordinates'): 
+            if 'coordinates' in prediction_dict:
                 prediction_dict['coordinates'] = np.transpose(
                     prediction_dict['coordinates'], (1, 2, 0))
 
             # generate return dict
             predictions = {}
             for id_, num_steps, tertiary, recurrent_states \
-                in izip_longest(*[prediction_dict.get(key, []) \
+                in zip_longest(*[prediction_dict.get(key, []) \
                 for key in ['ids', 'num_stepss', 'coordinates', 'recurrent_states']]):
                 prediction = {}
 
@@ -594,6 +595,9 @@ class RGNModel(object):
                  for i in range(self._grads_and_vars_length)]
         grads = [diagnostic_dict['g' + str(i)] \
                  for i in range(self._grads_and_vars_length)]
+        
+        print("*** LENGTH: ", self._grads_and_vars_length)
+        print("*** VARS: ", vars_)
         diagnostic_dict.update({
             'min_weight': np.min([np.min(var) for var in vars_]),
             'max_weight': np.max([np.max(var) for var in vars_]),
@@ -816,7 +820,7 @@ def _device_function_constructor(functions_on_devices={}, default_device=''):
 
     def device_function(op):
         # can't depend on ordering of items in dicts
-        for device, funcs in functions_on_devices.iteritems():
+        for device, funcs in functions_on_devices.items():
             if any(((func in op.name) \
             or any(func in node.name for node in op.inputs)) for func in funcs):
                 return device
@@ -1847,7 +1851,7 @@ def _training(config, loss):
         'momentum': tf.train.MomentumOptimizer,
         'adagrad': tf.train.AdagradOptimizer,
         'adadelta': tf.train.AdadeltaOptimizer}[config['optimizer']]
-    optimizer_params = config.viewkeys() & set(optimizer_args(optimizer_func))
+    optimizer_params = config.keys() & set(optimizer_args(optimizer_func))
     optimizer_params_and_values = {param: config[param] for param in optimizer_params}
     optimizer = optimizer_func(**optimizer_params_and_values)
 
