@@ -27,7 +27,6 @@ TODO: change around the dictionaries such that there
 is an individual RNN dict and individual transformer dict.
 """
 
-from builtins import str
 from ast import literal_eval
 
 # functions for reading in parsed config file

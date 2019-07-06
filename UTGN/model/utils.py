@@ -73,9 +73,7 @@ def ops_to_dict(session, ops):
         dict
     """
 
-    dict_ = dict(zip(
-        ops.keys(), 
-        session.run(list(ops.values()))))
+    dict_ = dict(list(zip(list(ops.keys()), session.run(list(ops.values())))))
 
     return dict_
 

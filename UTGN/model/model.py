@@ -10,7 +10,7 @@ Tensors have this orientation unless otherwise labeled.
 import os
 from glob import glob
 from copy import deepcopy
-from six.moves import zip_longest
+from itertools import zip_longest
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
@@ -251,7 +251,7 @@ class RGNModel(object):
             if config.architecture['is_transformer']:
                 recurrent_states = None
                 keep_prob = 0.5
-                n_layers = 2
+                n_layers = 3
                 heads = 2
                 d_ff = 128
                 # dense_input_dim = 128
@@ -521,7 +521,7 @@ class RGNModel(object):
 
             # remove non-user facing ops
             if pretty: 
-                [evaluation_dict.pop(k) for k in list(evaluation_dict) if 'op' in k]
+                [evaluation_dict.pop(k) for k in list(evaluation_dict.keys()) if 'op' in k]
 
             return evaluation_dict
 
@@ -543,8 +543,7 @@ class RGNModel(object):
             prediction_dict = ops_to_dict(session, self._prediction_ops)
 
             # process tertiary sequences
-            # if prediction_dict.has_key('coordinates'): 
-            if 'coordinates' in prediction_dict:
+            if 'coordinates' in prediction_dict: 
                 prediction_dict['coordinates'] = np.transpose(
                     prediction_dict['coordinates'], (1, 2, 0))
 
@@ -595,9 +594,6 @@ class RGNModel(object):
                  for i in range(self._grads_and_vars_length)]
         grads = [diagnostic_dict['g' + str(i)] \
                  for i in range(self._grads_and_vars_length)]
-        
-        print("*** LENGTH: ", self._grads_and_vars_length)
-        print("*** VARS: ", vars_)
         diagnostic_dict.update({
             'min_weight': np.min([np.min(var) for var in vars_]),
             'max_weight': np.max([np.max(var) for var in vars_]),
@@ -873,8 +869,8 @@ def _dataflow(config, max_length):
     # randomization
     # https://github.com/tensorflow/tensorflow/issues/5147#issuecomment-271086206
     if config['shuffle']:
-        dtypes = list(map(lambda x: x.dtype, inputs))
-        shapes = list(map(lambda x: x.get_shape(), inputs))
+        dtypes = list([x.dtype for x in inputs])
+        shapes = list([x.get_shape() for x in inputs])
         randomizer_queue = tf.RandomShuffleQueue(
             capacity=config['batch_queue_capacity'],
             min_after_dequeue=config['min_after_dequeue'],
@@ -1113,9 +1109,9 @@ def _higher_recurrence(mode, config, inputs, num_stepss, alphabet=None):
                 and (layer_idx >= residual_n + residual_shift):
                     layer_recurrent_outputs = layer_recurrent_outputs \
                     + layers_recurrent_outputs[-residual_n]
-                    print('residually wired layer ' \
+                    print(('residually wired layer ' \
                           + str(layer_idx - residual_n + 1) \
-                          + ' to layer ' + str(layer_idx + 1))
+                          + ' to layer ' + str(layer_idx + 1)))
 
                 # add to list of recurrent layers' outputs
                 # (needed for residual connection and some skip connections)
@@ -1866,7 +1862,7 @@ def _training(config, loss):
                     [g for g, _ in grads_and_vars], 
                     threshold)
                 vars_ = [v for _, v in grads_and_vars]
-                grads_and_vars = zip(grads, vars_)
+                grads_and_vars = list(zip(grads, vars_))
             elif case('hard_clipping'):
                 grads_and_vars = [
                     (tf.clip_by_value(g, -threshold, threshold), v)\

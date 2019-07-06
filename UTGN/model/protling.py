@@ -76,8 +76,7 @@ def evaluate_and_log(log_file, configs, models, session):
             for subgroup in ['all'] + configs['eval_wt_val'].io['evaluation_sub_groups']:
                 loss_key = loss_type + '_' + subgroup
                 wt_val_loss.update({loss_key: wt_val_loss_dict.get(loss_key, float('nan'))})
-        wt_val_loss_subgroups_string = ''.join(map(lambda grp: '\tValidation_' + grp + ': {tertiary_loss_' + grp + ':.3f}',
-                                                   configs['eval_wt_val'].io['evaluation_sub_groups']))
+        wt_val_loss_subgroups_string = ''.join(['\tValidation_' + grp + ': {tertiary_loss_' + grp + ':.3f}' for grp in configs['eval_wt_val'].io['evaluation_sub_groups']])
     else:
         wt_val_loss = {'tertiary_loss_all': float('nan')}
         wt_val_loss_subgroups_string = '' 
@@ -119,8 +118,7 @@ def evaluate_and_log(log_file, configs, models, session):
                 for subgroup in ['all'] + configs['eval_unwt_val'].io['evaluation_sub_groups']:
                     loss_key = loss_type + '_' + subgroup
                     unwt_val_loss.update({loss_key: unwt_val_loss_dict.get(loss_key, float('nan'))})
-            unwt_val_loss_subgroups_string = ''.join(map(lambda grp: '\tUnweighted Validation_' + grp + ': {tertiary_loss_' + grp + ':.3f}', 
-                                                         configs['eval_unwt_val'].io['evaluation_sub_groups']))
+            unwt_val_loss_subgroups_string = ''.join(['\tUnweighted Validation_' + grp + ': {tertiary_loss_' + grp + ':.3f}' for grp in configs['eval_unwt_val'].io['evaluation_sub_groups']])
         else:
             unwt_val_loss = {'tertiary_loss_all': float('nan')}
             unwt_val_loss_subgroups_string = ''
@@ -196,7 +194,9 @@ def predict_and_log(log_dir, configs, models, session):
                     for idx, dict_ in dicts.items():
                         if 'tertiary'  in dict_:
                             np.savetxt(
-                                os.path.join(outputs_dir, idx + '.tertiary'), 
+                                os.path.join(
+                                    outputs_dir,
+                                    idx.decode("utf-8") + '.tertiary'), 
                                 dict_['tertiary'], header='\n')
                         # if 'recurrent_states' in dict_:
                         #     np.savetxt(
@@ -468,7 +468,7 @@ def run_model(args):
 
     # start head model and related prep
     stdout_err_file_handle.flush()
-    session = models['training'].start(models.values())
+    session = models['training'].start(list(models.values()))
     global_step = models['training'].current_step(session)
     current_log_step = (global_step // configs['run'].io['prediction_frequency']) + 1
     log_dir = os.path.join(run_dir, str(current_log_step))
@@ -487,7 +487,7 @@ def run_model(args):
         except tf.errors.OutOfRangeError:
             pass
         except:
-            print('Unexpected error: ', sys.exc_info()[0])
+            print(('Unexpected error: ', sys.exc_info()[0]))
             raise
         finally:
             if models['training']._is_started: 
@@ -600,14 +600,14 @@ def run_model(args):
                 old_seed = configs['training'].initialization['graph_seed']
                 new_seed = old_seed + args.seed_increment
                 for line in fileinput.input(args.config_file, inplace=True):
-                    print (line.replace('randSeed ' + str(old_seed), 'randSeed ' + str(new_seed))),
+                    print(line.replace('randSeed ' + str(old_seed), 'randSeed ' + str(new_seed)), end=' ')
                 
                 restart = True
             else:
                 print('Milestone missed; model will be terminated.')
             
         except:
-            print('Unexpected error: ', sys.exc_info()[0])
+            print(('Unexpected error: ', sys.exc_info()[0]))
             raise
 
         finally:
