@@ -180,7 +180,7 @@ class RGNConfig(Config):
             'higher_order_layers':                      str_or_bool(config.get('higherOrderLayers',                    False)),
             'include_recurrent_outputs_between_layers': str_or_bool(config.get('includeRecurrentOutputsBetweenLayers', True)), # HO
             'include_dihedrals_between_layers':         str_or_bool(config.get('includeDihedralsBetweenLayers',        False)), # HO
-            'residual_connections_every_n_layers':      int_or_none(config.get('residualConnectionsEveryNLayers',      None)), # HO
+            'residual_connections_every_n_layers':      int_or_none(config.get('residualConnectionsEveryNLayers',      0)), # HO
             'first_residual_connection_from_nth_layer': int_or_none(config.get('firstResidualConnectionFromNthLayer',  1)), # HO
             'recurrent_to_output_skip_connections':     str_or_bool(config.get('recurrentToOutputSkipConnections',     False)), # HO
             'input_to_recurrent_skip_connections':      str_or_bool(config.get('inputToRecurrentSkipConnections',      False)), # HO
