@@ -15,7 +15,6 @@ from shutil import rmtree
 from pprint import pprint
 import numpy as np
 import tensorflow as tf
-from setproctitle import setproctitle
 from utils import *
 from model import RGNModel
 from config import RGNConfig, RunConfig
@@ -226,8 +225,6 @@ def run_model(args):
     # set GPU-related environmental options and config settings
     # ??? does this even do anything? Whats the point of setting the environment?
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu) if args.gpu is not None else ''
-    setproctitle('RGN ' + configs['run'].names['run'] + ' on ' \
-                  + os.getenv('CUDA_VISIBLE_DEVICES', 'CPU'))
 
     # derived files and directories
     base_dir = args.base_directory
