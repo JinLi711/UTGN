@@ -225,7 +225,8 @@ def run_model(args):
 
     # set GPU-related environmental options and config settings
     # ??? does this even do anything? Whats the point of setting the environment?
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu) if args.gpu is not None else ''
+    # os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu) if args.gpu is not None else ''
+    os.environ['CUDA_VISIBLE_DEVICES'] = 0
 
     # derived files and directories
     base_dir = args.base_directory
