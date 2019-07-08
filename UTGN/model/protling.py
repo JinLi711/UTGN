@@ -676,6 +676,6 @@ if __name__ == '__main__':
 
     end_time = time.time()
     hours_elapsed = (end_time - start_time) / 3600
-    print("\n\n\n*** Train time: {} hours ***".format(hours_elapsed))
+    # print("\n\n\n*** Train time: {} hours ***".format(hours_elapsed))
 
     
