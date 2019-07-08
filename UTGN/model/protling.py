@@ -473,8 +473,8 @@ def run_model(args):
     log_dir = os.path.join(run_dir, str(current_log_step))
     restart = False
 
-    trainable_params = count_trainable_params()
-    print("\n\n\n*** Trainable Parameters: {} ***".format(trainable_params))
+    # trainable_params = count_trainable_params()
+    # print("\n\n\n*** Trainable Parameters: {} ***".format(trainable_params))
     # from sys import exit
     # exit()
 
