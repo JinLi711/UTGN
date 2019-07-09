@@ -37,8 +37,14 @@ def _layer_norm(layer):
     """
 
     with tf.variable_scope("norm"):
-        scale = tf.get_variable("scale", shape=layer.shape[-1], dtype=tf.float32)
-        base = tf.get_variable("base", shape=layer.shape[-1], dtype=tf.float32)
+        scale = tf.get_variable(
+            "scale", 
+            shape=layer.shape[-1], 
+            dtype=tf.float32)
+        base = tf.get_variable(
+            "base", 
+            shape=layer.shape[-1], 
+            dtype=tf.float32)
         mean, std = _get_mean_std(layer)
         norm = (layer - mean) / (std + 1e-6)
         return norm * scale + base
@@ -119,7 +125,12 @@ def _multi_head_attention(query, key, value, mask, heads, keep_prob):
         key = _prepare_multi_head_attention(key, heads, "key")
         value = _prepare_multi_head_attention(value, heads, "value")
         mask = tf.expand_dims(mask, axis=1)
-        out = _attention(query, key, value, mask=mask, keep_prob=keep_prob)
+        out = _attention(
+            query, 
+            key, 
+            value, 
+            mask=mask, 
+            keep_prob=keep_prob)
         out = tf.transpose(out, perm=[0, 2, 1, 3])
         seq_len = none_to1(seq_len)
         out = tf.reshape(out, shape=[n_batches, seq_len, d_model])
@@ -166,12 +177,13 @@ def _encoder_layer(x, mask, layer_num, heads, keep_prob, d_ff):
     d_model = x.shape[-1]
     # with tf.variable_scope(f"attention_{layer_num}"):
     with tf.variable_scope("attention_" + str(layer_num)):
-        attention_out = _multi_head_attention(x,
-                                              x,
-                                              x,
-                                              mask=mask,
-                                              heads=heads,
-                                              keep_prob=keep_prob)
+        attention_out = _multi_head_attention(
+            x,
+            x,
+            x,
+            mask=mask,
+            heads=heads,
+            keep_prob=keep_prob)
         added = x + tf.nn.dropout(attention_out, keep_prob)
         x = _layer_norm(added)
 
@@ -199,12 +211,13 @@ def _encoder(x, mask, n_layers, heads, keep_prob, d_ff):
 
     with tf.variable_scope("encoder"):
         for i in range(n_layers):
-            x = _encoder_layer(x,
-                               mask=mask,
-                               layer_num=i,
-                               heads=heads,
-                               keep_prob=keep_prob,
-                               d_ff=d_ff)
+            x = _encoder_layer(
+                x,
+                mask=mask,
+                layer_num=i,
+                heads=heads,
+                keep_prob=keep_prob,
+                d_ff=d_ff)
         return x
 
 
@@ -225,9 +238,13 @@ def _generate_positional_encodings(d_model, seq_len=5000):
     div_term = np.exp(-np.log(10000.0) * two_i / d_model)
     encodings[:, 0::2] = np.sin(position * div_term)
     encodings[:, 1::2] = np.cos(position * div_term)
-    return tf.constant(encodings.reshape((1, seq_len, d_model)),
-                       dtype=tf.float32,
-                       name="positional_encodings")
+
+    pos_encodings = tf.constant(
+        encodings.reshape((1, seq_len, d_model)),
+        dtype=tf.float32,
+        name="positional_encodings")
+
+    return pos_encodings
 
 
 def _prepare_embeddings(x, positional_encodings, keep_prob):

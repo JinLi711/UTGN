@@ -278,6 +278,10 @@ class RGNModel(object):
                     positional_encodings=positional_encodings,
                     keep_prob=keep_prob,
                     )
+
+                if mode == 'training':
+                    keep_prob = 1
+                    
                 recurrent_outputs = transformer._encoder(
                     input_embeddings,
                     mask=inputs_mask,
