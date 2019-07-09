@@ -225,7 +225,8 @@ def run_model(args):
 
     # set GPU-related environmental options and config settings
     # ??? does this even do anything? Whats the point of setting the environment?
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu) if args.gpu is not None else ''
+    # os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu) if args.gpu is not None else ''
+    # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
     # derived files and directories
     base_dir = args.base_directory
@@ -472,8 +473,8 @@ def run_model(args):
     log_dir = os.path.join(run_dir, str(current_log_step))
     restart = False
 
-    trainable_params = count_trainable_params()
-    print("\n\n\n*** Trainable Parameters: {} ***".format(trainable_params))
+    # trainable_params = count_trainable_params()
+    # print("\n\n\n*** Trainable Parameters: {} ***".format(trainable_params))
     # from sys import exit
     # exit()
 
@@ -676,6 +677,6 @@ if __name__ == '__main__':
 
     end_time = time.time()
     hours_elapsed = (end_time - start_time) / 3600
-    print("\n\n\n*** Train time: {} hours ***".format(hours_elapsed))
+    # print("\n\n\n*** Train time: {} hours ***".format(hours_elapsed))
 
     
