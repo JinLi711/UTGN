@@ -250,7 +250,7 @@ class RGNModel(object):
 
             if config.architecture['is_transformer']:
                 # recurrent_states = None
-                keep_prob = 0.5
+                keep_prob = 1.0
                 n_layers = 2
                 heads = 2
                 d_ff = 128
