@@ -257,6 +257,7 @@ class RGNModel(object):
                 # dense_input_dim = 256
                 # layer size in this case is embedding dimension
                 # inputs2: [BATCH_SIZE, NUM_STEPS, RECURRENT_LAYER_SIZE]
+                # TODO: change around this activation
                 inputs2 = tf.transpose(inputs, perm=[1,0,2])
                 # inputs2 = tf.layers.dense(
                 #     inputs2,
@@ -281,7 +282,7 @@ class RGNModel(object):
 
                 if mode == 'training':
                     keep_prob = 1
-                    
+
                 recurrent_outputs = transformer._encoder(
                     input_embeddings,
                     mask=inputs_mask,
