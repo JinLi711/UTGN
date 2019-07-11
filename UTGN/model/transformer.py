@@ -105,7 +105,7 @@ def _prepare_multi_head_attention(x, heads, name):
     return x
 
 
-def _multi_head_attention(query, key, value, mask, heads, keep_prob):
+def _multi_head_attention(query, key, value, mask, heads, keep_prob, train=True):
     """Calculates the multihead attention.
     
     Args:
@@ -131,7 +131,8 @@ def _multi_head_attention(query, key, value, mask, heads, keep_prob):
             key, 
             value, 
             mask=mask, 
-            keep_prob=keep_prob)
+            keep_prob=keep_prob,
+            train=train)
         out = tf.transpose(out, perm=[0, 2, 1, 3])
         seq_len = none_to1(seq_len)
         out = tf.reshape(out, shape=[n_batches, seq_len, d_model])
@@ -187,7 +188,8 @@ def _encoder_layer(x, mask, layer_num,
             x,
             mask=mask,
             heads=heads,
-            keep_prob=keep_prob)
+            keep_prob=keep_prob,
+            train=train)
 
         if train:
             attention_out = tf.nn.dropout(
@@ -198,14 +200,14 @@ def _encoder_layer(x, mask, layer_num,
 
     # with tf.variable_scope(f"ff_{layer_num}"):
     with tf.variable_scope("ff_" + str(layer_num)):
-        ff_out = _feed_forward(x, d_model, d_ff, keep_prob)
+        ff_out = _feed_forward(x, d_model, d_ff, keep_prob, train=train)
         if train:
             ff_out = tf.nn.dropout(ff_out, keep_prob)
         added = x + ff_out
         return _layer_norm(added)
 
 
-def _encoder(x, mask, n_layers, heads, keep_prob, d_ff):
+def _encoder(x, mask, n_layers, heads, keep_prob, d_ff, train=True):
     """Create the encoder architecture
     
     Args:
@@ -228,7 +230,8 @@ def _encoder(x, mask, n_layers, heads, keep_prob, d_ff):
                 layer_num=i,
                 heads=heads,
                 keep_prob=keep_prob,
-                d_ff=d_ff)
+                d_ff=d_ff,
+                train=train)
         return x
 
 
