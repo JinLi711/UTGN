@@ -192,7 +192,12 @@ class RGNConfig(Config):
             'alphabet_trainable':                       str_or_bool(config.get('alphabetTrainable',                    True)),
             'include_primary':                          str_or_bool(config.get('includePrimary',                       True)),
             'include_evolutionary':                     str_or_bool(config.get('includeEvolutionary',                  False)),
-            'is_transformer':                     str_or_bool(config.get('is_transformer',                  True))
+            'is_transformer':                     str_or_bool(config.get('is_transformer',                  True)),
+            'transformer_layers':                     int_or_none(config.get('transformer_layers',                  6)),
+            'transformer_heads':                     int_or_none(config.get('transformer_heads',                  8)),
+            'transformer_ff_dims':                     int_or_none(config.get('transformer_ff_dims',                  512)),
+            'transformer_dense_input_dim':                     int_or_none(config.get('transformer_dense_input_dim',                  256)),
+
         }
 
         self.regularization = {
@@ -205,7 +210,8 @@ class RGNConfig(Config):
             'alphabet_normalization':                     str_or_none(config.get('alphabetNormalization',              None)), # pHO
             'recurrent_nonlinear_out_proj_normalization': str_or_none(config.get('recurNonlinearOutProjNormalization', None)),
             'recurrent_layer_normalization':              str_or_bool(config.get('recurLayerNormalization',            False)), # LNLSTM
-            'recurrent_variational_dropout':              str_or_bool(config.get('recurVariationalDropout',            False))
+            'recurrent_variational_dropout':              str_or_bool(config.get('recurVariationalDropout',            False)),
+            'transformer_keep_prob':                     eval_if_str(config.get('transformer_keep_prob',                  1.0)),
         }
 
         self.loss = {
