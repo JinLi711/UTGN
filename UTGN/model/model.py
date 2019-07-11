@@ -250,11 +250,17 @@ class RGNModel(object):
 
             if config.architecture['is_transformer']:
                 # recurrent_states = None
-                keep_prob = 0.95
-                n_layers = 12
-                heads = 8
-                d_ff = 512
-                dense_input_dim = 256
+                # keep_prob = 0.95
+                # n_layers = 12
+                # heads = 8
+                # d_ff = 512
+                # dense_input_dim = 256
+
+                keep_prob = config.regularization['transformer_keep_prob']
+                n_layers = config.architecture['transformer_layers']
+                heads = config.architecture['transformer_heads']
+                d_ff = config.architecture['transformer_ff_dims']
+                dense_input_dim = config.architecture['transformer_dense_input_dim']
                 # layer size in this case is embedding dimension
                 # inputs2: [BATCH_SIZE, NUM_STEPS, RECURRENT_LAYER_SIZE]
                 # TODO: change around this activation

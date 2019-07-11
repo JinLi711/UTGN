@@ -61,6 +61,7 @@ def _attention(query, key, value, mask, keep_prob, train=True):
         value: The value tensor.
         mask: Mask of shape [BATCH_SIZE, HEADS, SEQ_LEN, FEATURES]
         keep_prob: The drop out probability.
+        train: train or predict
     
     Returns:
         The scaled dot-product attention.
@@ -115,6 +116,7 @@ def _multi_head_attention(query, key, value, mask, heads, keep_prob, train=True)
         mask: mask tensor of shape [BATCH_SIZE, SEQ_LEN, FEATURES].
         heads: number of heads.
         keep_prob: The drop out probability.
+        train: train or predict
     
     Returns:
         Tensor of shape [BATCH_SIZE, SEQ_LEN, FEATURES]
@@ -149,6 +151,7 @@ def _feed_forward(x, d_model, d_ff, keep_prob, train=True):
         d_model: dimension of W2.
         d_ff: dimension of W1.
         keep_prob: The drop out probability.
+        train: train or predict
         
     Returns:
         Tensor
@@ -174,6 +177,7 @@ def _encoder_layer(x, mask, layer_num,
         heads: Number of heads.
         keep_prob: The drop out probability.
         d_ff: dimension of W1.
+        train: train or predict
         
     Returns:
         Tensor of shape: [BATCH_SIZE, SEQ_LEN, FEATURES].
@@ -217,6 +221,7 @@ def _encoder(x, mask, n_layers, heads, keep_prob, d_ff, train=True):
         heads: number of heads.
         keep_prob: The drop out probability.
         d_ff: dimension of W1.
+        train: train or predict
         
     Returns:
         Tensor of shape: [BATCH_SIZE, SEQ_LEN, FEATURES].
@@ -269,6 +274,7 @@ def _prepare_embeddings(x, positional_encodings,
         x: input embeddings of shape [BATCH_SIZE, SEQ_LEN, FEATURES].
         positional_encodings: encoding tensor of shape [1, SEQ_LEN, FEATURES].
         keep_prob: The drop out probability.
+        train: train or predict
         
     Returns:
         Tensor of shape [BATCH_SIZE, SEQ_LEN, FEATURES].
