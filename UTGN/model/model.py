@@ -250,13 +250,14 @@ class RGNModel(object):
 
             if config.architecture['is_transformer']:
                 # recurrent_states = None
-                keep_prob = 0.90
-                n_layers = 6
+                keep_prob = 0.95
+                n_layers = 12
                 heads = 8
                 d_ff = 512
                 dense_input_dim = 256
                 # layer size in this case is embedding dimension
                 # inputs2: [BATCH_SIZE, NUM_STEPS, RECURRENT_LAYER_SIZE]
+                # TODO: change around this activation
                 inputs2 = tf.transpose(inputs, perm=[1,0,2])
                 inputs2 = tf.layers.dense(
                     inputs2,
@@ -266,6 +267,7 @@ class RGNModel(object):
                 embed_dim = inputs2.get_shape()[2].value
                 step_dim = inputs2_shape[1]
                 
+                train = (mode == 'training')
                 # if mode != 'training':
                 #     keep_prob = 1
 
@@ -279,6 +281,7 @@ class RGNModel(object):
                     inputs2,
                     positional_encodings=positional_encodings,
                     keep_prob=keep_prob,
+                    train=True
                 )
 
                     
@@ -288,7 +291,8 @@ class RGNModel(object):
                     n_layers=n_layers,
                     heads=heads,
                     keep_prob=keep_prob,
-                    d_ff=d_ff)
+                    d_ff=d_ff,
+                    train=True)
 
                 recurrent_outputs = tf.transpose(
                     recurrent_outputs,

@@ -50,7 +50,7 @@ def _layer_norm(layer):
         return norm * scale + base
     
     
-def _attention(query, key, value, mask, keep_prob):
+def _attention(query, key, value, mask, keep_prob, train=True):
     """Calculates scaled dot-product attention.
     
     softmax(Q K^{T} / sqrt(d_{k}))V
@@ -73,7 +73,8 @@ def _attention(query, key, value, mask, keep_prob):
     mask_add = ((scores * 0) - cast32(1e9)) * (tf.constant(1.) - cast32(mask))
     scores = scores * cast32(mask) + mask_add
     attn = tf.nn.softmax(scores, axis=-1)
-    attn = tf.nn.dropout(attn, keep_prob)
+    if train:
+        attn = tf.nn.dropout(attn, keep_prob)
     return tf.matmul(attn, value)
 
 
@@ -137,7 +138,7 @@ def _multi_head_attention(query, key, value, mask, heads, keep_prob):
         return tf.layers.dense(out, units=d_model, name="attention")
 
 
-def _feed_forward(x, d_model, d_ff, keep_prob):
+def _feed_forward(x, d_model, d_ff, keep_prob, train=True):
     """Feed forward layer along with of relu and dropout.
     
     FFN(x) = max(0,xW1+b1)W2+b2
@@ -155,11 +156,14 @@ def _feed_forward(x, d_model, d_ff, keep_prob):
     with tf.variable_scope("feed_forward"):
         hidden = tf.layers.dense(x, units=d_ff, name="hidden")
         hidden = tf.nn.relu(hidden)
-        hidden = tf.nn.dropout(hidden, keep_prob=keep_prob)
+        if train:
+            hidden = tf.nn.dropout(hidden, keep_prob=keep_prob)
         return tf.layers.dense(hidden, units=d_model, name="out")
 
 
-def _encoder_layer(x, mask, layer_num, heads, keep_prob, d_ff):
+def _encoder_layer(x, mask, layer_num, 
+                   heads, keep_prob, d_ff, 
+                   train=True):
     """Create a single encoder layer.
     
     Args:
@@ -184,13 +188,20 @@ def _encoder_layer(x, mask, layer_num, heads, keep_prob, d_ff):
             mask=mask,
             heads=heads,
             keep_prob=keep_prob)
-        added = x + tf.nn.dropout(attention_out, keep_prob)
+
+        if train:
+            attention_out = tf.nn.dropout(
+                attention_out, 
+                keep_prob)
+        added = x + attention_out
         x = _layer_norm(added)
 
     # with tf.variable_scope(f"ff_{layer_num}"):
     with tf.variable_scope("ff_" + str(layer_num)):
         ff_out = _feed_forward(x, d_model, d_ff, keep_prob)
-        added = x + tf.nn.dropout(ff_out, keep_prob)
+        if train:
+            ff_out = tf.nn.dropout(ff_out, keep_prob)
+        added = x + ff_out
         return _layer_norm(added)
 
 
@@ -247,7 +258,8 @@ def _generate_positional_encodings(d_model, seq_len=5000):
     return pos_encodings
 
 
-def _prepare_embeddings(x, positional_encodings, keep_prob):
+def _prepare_embeddings(x, positional_encodings, 
+                        keep_prob, train=True):
     """Add positional encoding and normalize embeddings.
     
     Args:
@@ -263,5 +275,7 @@ def _prepare_embeddings(x, positional_encodings, keep_prob):
         _, seq_len, _ = x.shape
         # TODO: put positional encoding back in
         # x = x + positional_encodings[:, :seq_len, :]
-        x = tf.nn.dropout(x, keep_prob)
+
+        if train:
+            x = tf.nn.dropout(x, keep_prob)
         return _layer_norm(x)
