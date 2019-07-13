@@ -3,14 +3,19 @@
 Input tensor of shape [BATCH_SIZE, SEQ_LEN, FEATURES]
 Output tensor of the same shape.
 
+Code adapted from tensor2tensor.
+
 # TODO: Take a look at _higher_recurrence and perform similar
 functions (like updating config, etc)
 # TODO: add trainable parameters to collection 
 (check _recurrence)
+TODO: allow feed forward to be replacable by 
+1d seperable convolution
 """
 
 import numpy as np
 import tensorflow as tf
+from utils import *
 
 
 cast32 = lambda x: tf.dtypes.cast(x, tf.float32)
@@ -167,7 +172,7 @@ def _feed_forward(x, d_model, d_ff, keep_prob, train=True):
 
 def _encoder_layer(x, mask, layer_num, 
                    heads, keep_prob, d_ff, 
-                   train=True):
+                   train=True, transition_function="ff"):
     """Create a single encoder layer.
     
     Args:
@@ -288,3 +293,230 @@ def _prepare_embeddings(x, positional_encodings,
         if train:
             x = tf.nn.dropout(x, keep_prob)
         return _layer_norm(x)
+
+
+def _ut_function(state,
+                step,
+                halting_probability,
+                remainders,
+                n_updates,
+                previous_state,
+                encoder_layer_func,
+                config):
+    """Implements ACT (position-wise halting).
+    
+    Args:
+        state: Tensor of shape [batch_size, length, input_dim]
+        step: indicates number of steps taken so far
+        halting_probability: halting probability
+        remainders: ACT remainders
+        n_updates: ACT n_updates
+        previous_state: previous state
+        encoder_layer_func: encoder layer function
+        config: configuration dict
+      
+    Returns:
+        transformed_state: transformed state
+        step: step + 1
+        halting_probability: halting probability
+        remainders: act remainders
+        n_updates: act n_updates
+        new_state: new state
+        
+    TODO: include positional encodings
+    """
+
+    num_layers = config['transformer_layers']
+    threshold = config['act_threshold']
+
+    with tf.variable_scope("sigmoid_activation_for_pondering"):
+        p = tf.layers.dense(
+            state, 
+            1, 
+            activation=tf.nn.sigmoid, 
+            use_bias=True)
+
+    # Mask for inputs which have not halted yet
+    still_running = tf.cast(tf.less(halting_probability, 1.0), tf.float32)
+
+    # Mask of inputs which halted at this step
+    new_halted = tf.cast(
+        tf.greater(halting_probability + p * still_running, threshold),
+        tf.float32) * still_running
+
+    # Mask of inputs which haven't halted, and didn't halt this step
+    still_running = tf.cast(
+        tf.less_equal(halting_probability + p * still_running, threshold),
+        tf.float32) * still_running
+
+    # Add the halting probability for this step to the halting
+    # probabilities for those input which haven't halted yet
+    halting_probability += p * still_running
+
+    # Compute remainders for the inputs which halted at this step
+    remainders += new_halted * (1 - halting_probability)
+
+    # Add the remainders to those inputs which halted at this step
+    halting_probability += new_halted * remainders
+
+    # Increment n_updates for all inputs which are still running
+    n_updates += still_running + new_halted
+
+    # Compute the weight to be applied to the new state and output
+    # 0 when the input has already halted
+    # p when the input hasn't halted yet
+    # the remainders when it halted this step
+    update_weights = p * still_running + new_halted * remainders
+
+    transformed_state = state
+
+    for i in range(num_layers):
+        with tf.variable_scope("rec_layer_%d" % i):
+            transformed_state = encoder_layer_func(state, i)
+
+    # update running part in the weighted state and keep the rest
+    new_state = ((transformed_state * update_weights) + (previous_state *
+                                                         (1 - update_weights)))
+
+    step += 1
+    return (transformed_state, step, halting_probability, remainders,
+            n_updates, new_state)
+
+
+def _should_continue(u0, u1, halting_probability, u2, n_updates, u3, config):
+    """While loop stops when this predicate is FALSE.
+    
+    I.e. all (probability < 1-eps AND counter < N) are false.
+    
+    Args:
+        u0: Not used
+        u1: Not used
+        halting_probability: halting probability
+        u2: Not used
+        n_updates: ACT n_updates
+        u3: Not used
+        config: parameter configurations
+        
+    Returns:
+        bool
+    """
+
+    threshold = config['act_threshold']
+    act_max_steps = config['act_max_steps']
+
+    del u0, u1, u2, u3
+    return tf.reduce_any(
+        tf.logical_and(tf.less(halting_probability, threshold),
+                       tf.less(n_updates, act_max_steps)))
+
+def _ut_transformer(state, inputs_mask, config):
+    """Universal transformer.
+
+    Args:
+        state: Tensor of shape [batch_size, length, input_dim]
+
+    Returns:
+        Tensor of shape [batch_size, length, input_dim]
+    """
+
+    # seq_length = config['num_steps']
+    seq_length = tf.shape(state)[1]
+    batch_size = state.shape[0]
+    input_dim = state.shape[2]
+    step = 0
+    halting_probability = tf.zeros([batch_size, seq_length, 1])
+    remainders = tf.zeros([batch_size, seq_length, 1])
+    n_updates = tf.zeros([batch_size, seq_length, 1])
+    previous_state = tf.zeros([batch_size, seq_length, input_dim])
+    act_max_steps = config['act_max_steps']
+    keep_prob = config['transformer_keep_prob']
+    heads = config['transformer_heads']
+    d_ff = config['transformer_ff_dims']
+
+
+    def _should_continue_(u0, u1, halting_probability, u2, n_updates, u3):
+        return _should_continue(u0, u1, halting_probability, u2, n_updates, u3, config)
+
+    def _encoder_layer_(x, layer_num):
+        return _encoder_layer(x, inputs_mask, layer_num, 
+            heads, keep_prob, d_ff)
+
+    def _ut_function_(state, step, halting_probability, remainders, n_updates,
+                    previous_state):
+        return _ut_function(state, step, halting_probability, remainders, n_updates,
+                previous_state, _encoder_layer_, config)
+
+    (_, _, _, remainder, n_updates, encoding) = tf.while_loop(
+        _should_continue_,
+        _ut_function_,
+        (state, step, halting_probability, remainders, n_updates, previous_state),
+        maximum_iterations=act_max_steps + 1)
+
+    return encoding
+
+
+def transformer(state, config):
+    """
+    Create the tranformer model.
+
+    Possible architectures include:
+        Vanilla Transformer
+        Universal Transformer
+
+    Args:
+        state: Tensor of shape [batch_size, length, input_dim]
+        config: configuration params
+
+    Returns:
+        Tensor of shape [batch_size, length, input_dim]
+    """
+
+    dense_input_dim = config['transformer_dense_input_dim']
+    max_length = config['num_steps']
+    keep_prob = config['transformer_keep_prob']
+    n_layers = config['transformer_layers']
+    heads = config['transformer_heads']
+    d_ff = config['transformer_ff_dims']
+
+    state = tf.layers.dense(
+        state,
+        dense_input_dim,
+        activation=tf.nn.softmax)
+
+    state_shape = tf.shape(state)
+    embed_dim = state.get_shape()[2].value
+    step_dim = state_shape[1]
+
+
+    positional_encodings = _generate_positional_encodings(
+        embed_dim,
+        seq_len=max_length)
+
+
+    inputs_mask = tf.ones((1, 1, step_dim), dtype=float)
+
+    input_embeddings = _prepare_embeddings(
+        state,
+        positional_encodings=positional_encodings,
+        keep_prob=keep_prob)
+
+    for case in switch(config['transformer_type']):
+        if case('vanilla'):
+            out = _encoder(
+                    input_embeddings,
+                    mask=inputs_mask,
+                    n_layers=n_layers,
+                    heads=heads,
+                    keep_prob=keep_prob,
+                    d_ff=d_ff,
+                    train=True)
+        elif case('universal'):
+            out = _ut_transformer(
+                input_embeddings, 
+                inputs_mask, 
+                config)
+        else:
+            out = None
+
+    return out
+

@@ -197,6 +197,9 @@ class RGNConfig(Config):
             'transformer_heads':                     int_or_none(config.get('transformer_heads',                  8)),
             'transformer_ff_dims':                     int_or_none(config.get('transformer_ff_dims',                  512)),
             'transformer_dense_input_dim':                     int_or_none(config.get('transformer_dense_input_dim',                  256)),
+            'transformer_type':                                       config.get('transformer_type',                        'universal'),
+            'act_max_steps':                     int_or_none(config.get('act_max_steps',                  5)),
+            'act_threshold':      float(config.get('act_threshold',  0.5)),
 
         }
 

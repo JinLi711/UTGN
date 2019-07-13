@@ -248,58 +248,18 @@ class RGNModel(object):
             else:
                 alphabet = None
 
-            if config.architecture['is_transformer']:
-                # recurrent_states = None
-                # keep_prob = 0.95
-                # n_layers = 12
-                # heads = 8
-                # d_ff = 512
-                # dense_input_dim = 256
+            if config.architecture['is_transformer']:   
+                transformer_config = merge_dicts(
+                    config.initialization, 
+                    config.architecture, 
+                    config.regularization, 
+                    config.optimization)
 
-                keep_prob = config.regularization['transformer_keep_prob']
-                n_layers = config.architecture['transformer_layers']
-                heads = config.architecture['transformer_heads']
-                d_ff = config.architecture['transformer_ff_dims']
-                dense_input_dim = config.architecture['transformer_dense_input_dim']
-                # layer size in this case is embedding dimension
-                # inputs2: [BATCH_SIZE, NUM_STEPS, RECURRENT_LAYER_SIZE]
-                # TODO: change around this activation
                 inputs2 = tf.transpose(inputs, perm=[1,0,2])
-                inputs2 = tf.layers.dense(
+                recurrent_outputs = transformer.transformer(
                     inputs2,
-                    dense_input_dim,
-                    activation=tf.nn.softmax)
-                inputs2_shape = tf.shape(inputs2)
-                embed_dim = inputs2.get_shape()[2].value
-                step_dim = inputs2_shape[1]
-                
-                train = (mode == 'training')
-                # if mode != 'training':
-                #     keep_prob = 1
-
-                positional_encodings = transformer._generate_positional_encodings(
-                    embed_dim,
-                    seq_len=max_length)
-
-                inputs_mask = tf.ones((1, 1, step_dim), dtype=float)
-
-                input_embeddings = transformer._prepare_embeddings(
-                    inputs2,
-                    positional_encodings=positional_encodings,
-                    keep_prob=keep_prob,
-                    train=True
+                    transformer_config
                 )
-
-                    
-                recurrent_outputs = transformer._encoder(
-                    input_embeddings,
-                    mask=inputs_mask,
-                    n_layers=n_layers,
-                    heads=heads,
-                    keep_prob=keep_prob,
-                    d_ff=d_ff,
-                    train=True)
-
                 recurrent_outputs = tf.transpose(
                     recurrent_outputs,
                     perm=[1,0,2])
@@ -323,12 +283,6 @@ class RGNModel(object):
                     inputs,
                     num_stepss, 
                     alphabet=alphabet)
-
-                # recurrent_outputs = tf.Print(recurrent_outputs.shape, [recurrent_outputs], "AAAAA")
-            
-            
-            
-
 
             # Tertiary structure generation
             if config.loss['tertiary_weight'] > 0:
