@@ -540,8 +540,8 @@ class RGNModel(object):
             diagnostic dict
         """
 
-        for k, v in self._diagnostic_ops.items():
-            print("KEY: ", k, " VALUE: ", v)
+        # for k, v in self._diagnostic_ops.items():
+        #     print("KEY: ", k, " VALUE: ", v)
 
         diagnostic_dict = ops_to_dict(session, self._diagnostic_ops)
         

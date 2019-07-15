@@ -1,8 +1,6 @@
 """Main script for executing training / testing. 
 
-TODO: make sure all strings are in single quotes
 TODO: rename protling to something more descriptive
-TODO: remove unnecceary parse arguments
 """
 
 import os
@@ -22,7 +20,7 @@ from model import RGNModel
 from config import RGNConfig, RunConfig
 
 # for mac, to avoid OMP: Error #15
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 # directory names
 RUNS_DIRNAME = 'runs'
@@ -148,7 +146,8 @@ def evaluate_and_log(log_file, configs, models, session):
         extended_log = ''
 
     # Log to disk
-    with open(log_file, 'a') as f: f.write(base_log + extended_log + '\n')
+    with open(log_file, 'a') as f: 
+        f.write(base_log + extended_log + '\n')
 
     if 'alphabet' in diagnostics: 
         with open(log_file + '.alphabet', 'a') as f:
@@ -211,12 +210,8 @@ def predict_and_log(log_dir, configs, models, session):
 
 def run_model(args):
     """Either train a model or use it to predict.
-
-    TODO: add more reasons for failing.
     
     Restart if training failed. 
-    Possible reasons:
-
 
     Args:
         args: Parsed arguments from command line.
@@ -231,10 +226,11 @@ def run_model(args):
 
     # set GPU-related environmental options and config settings
     # set it on the terminal instead
+    # TODO: add this back in
     # os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu) if args.gpu is not None else ''
     # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
-    # derived files and directories
+    # files and directories
     base_dir = args.base_directory
     run_dir = os.path.join(
         base_dir, 
@@ -342,8 +338,7 @@ def run_model(args):
             'batchDependentNormalization': configs['run'].loss['training_batch_dependent_normalization'],
             'alphabetFile':                alphabet_file,
             'functionsOnDevices':          fod_training,
-            'defaultDevice':               dd_training,
-            'fillGPU':                     args.fill_gpu})})
+            'defaultDevice':               dd_training})})
 
     configs.update(
         {'evaluation': RGNConfig(
@@ -376,8 +371,6 @@ def run_model(args):
     if args.prediction_only:
         configs['evaluation'].loss['include'] = False
     else:
-        # ??? what's the point of having both?
-        # TODO: include this in Raises error for description
         if ((not configs['run'].evaluation['include_weighted_validation']) \
         and configs['run'].optimization['validation_reference'] == 'weighted') \
         or ((not configs['run'].evaluation['include_unweighted_validation']) \
@@ -625,7 +618,6 @@ def run_model(args):
 
 if __name__ == '__main__':
     # parse command-line arguments
-    # TODO: remove the need for directory path
     parser = argparse.ArgumentParser(description="Run RGN model.")
     parser.add_argument(
         '-d', '--base_directory',
@@ -664,12 +656,6 @@ if __name__ == '__main__':
         '-g', '--gpu',
         type=int,            
         help='GPU device to use.')
-    # TODO: is gpugrp even used?
-    gpugrp = parser.add_mutually_exclusive_group()
-    gpugrp.add_argument(
-        '-a', '--fill_gpu',
-        action='store_true', 
-        help='Fill all available GPU memory.')
     parser.add_argument(
         'config_file',
         help='Configuration file containing specification of RGN model.')
@@ -685,6 +671,6 @@ if __name__ == '__main__':
 
     end_time = time.time()
     hours_elapsed = (end_time - start_time) / 3600
-    # print("\n\n\n*** Train time: {} hours ***".format(hours_elapsed))
+    sys.stderr.write("\n\n\n*** Train time: {} hours ***".format(hours_elapsed))
 
     

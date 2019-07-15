@@ -21,7 +21,6 @@ The running configuration class contains attributes on:
     loss
 
 TODO: realign the dictionaries
-TODO: label all parameters
 TODO: rename all the config inputs
 """
 
