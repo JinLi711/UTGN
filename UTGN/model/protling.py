@@ -95,7 +95,12 @@ def evaluate_and_log(log_file, configs, models, session):
                 'Weight: {min_weight:.4e} {max_weight:.4e}\t' + \
                 'Update: {min_grad:.4e} {max_grad:.4e}' + \
                 wt_val_loss_subgroups_string
-               ).format(global_step, wt_train_loss, wt_val_loss['tertiary_loss_all'], wt_test_loss, **merge_dicts(diagnostics, wt_val_loss))
+               ).format(
+                   global_step, 
+                   wt_train_loss, 
+                   wt_val_loss['tertiary_loss_all'], 
+                   wt_test_loss, 
+                   **merge_dicts(diagnostics, wt_val_loss))
     
     # Additional diagnostics and losses if there's a curriculum.
     if configs['training'].curriculum['mode'] is not None:
@@ -224,7 +229,7 @@ def run_model(args):
     configs.update({'run': RunConfig(args.config_file)})
 
     # set GPU-related environmental options and config settings
-    # ??? does this even do anything? Whats the point of setting the environment?
+    # set it on the terminal instead
     # os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu) if args.gpu is not None else ''
     # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
@@ -473,8 +478,8 @@ def run_model(args):
     log_dir = os.path.join(run_dir, str(current_log_step))
     restart = False
 
-    # trainable_params = count_trainable_params()
-    # print("\n\n\n*** Trainable Parameters: {} ***".format(trainable_params))
+    trainable_params = count_trainable_params()
+    print("\n\n\n*** Trainable Parameters: {} ***".format(trainable_params))
     # from sys import exit
     # exit()
 

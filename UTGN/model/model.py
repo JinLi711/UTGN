@@ -256,7 +256,7 @@ class RGNModel(object):
                     config.optimization)
 
                 inputs2 = tf.transpose(inputs, perm=[1,0,2])
-                recurrent_outputs = transformer.transformer(
+                recurrent_outputs = transformer.encoder_model(
                     inputs2,
                     transformer_config
                 )

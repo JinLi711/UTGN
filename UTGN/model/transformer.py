@@ -409,8 +409,8 @@ def _should_continue(u0, u1, halting_probability, u2, n_updates, u3, config):
         tf.logical_and(tf.less(halting_probability, threshold),
                        tf.less(n_updates, act_max_steps)))
 
-def _ut_transformer(state, inputs_mask, config):
-    """Universal transformer.
+def _ut_encoder(state, inputs_mask, config):
+    """Universal transformer (encoder portion).
 
     Args:
         state: Tensor of shape [batch_size, length, input_dim]
@@ -455,9 +455,9 @@ def _ut_transformer(state, inputs_mask, config):
     return encoding
 
 
-def transformer(state, config):
+def encoder_model(state, config):
     """
-    Create the tranformer model.
+    Create the tranformer encoder model.
 
     Possible architectures include:
         Vanilla Transformer
@@ -511,12 +511,13 @@ def transformer(state, config):
                     d_ff=d_ff,
                     train=True)
         elif case('universal'):
-            out = _ut_transformer(
-                input_embeddings, 
-                inputs_mask, 
-                config)
+            out = _ut_encoder(
+                    input_embeddings, 
+                    inputs_mask, 
+                    config)
         else:
-            out = None
+            raise ValueError('Not an available transformer type.')
+            # out = None
 
     return out
 
