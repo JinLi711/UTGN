@@ -197,9 +197,11 @@ class RGNConfig(Config):
             'transformer_heads':                     int_or_none(config.get('transformer_heads',                  8)),
             'transformer_ff_dims':                     int_or_none(config.get('transformer_ff_dims',                  512)),
             'transformer_dense_input_dim':                     int_or_none(config.get('transformer_dense_input_dim',                  256)),
-            'transformer_type':                                       config.get('transformer_type',                        'universal'),
-            'act_max_steps':                     int_or_none(config.get('act_max_steps',                  5)),
+            'transformer_type':                                       config.get('transformer_type',                        'vanilla'),
+            'act_max_steps':                     int_or_none(config.get('act_max_steps',                  10)),
             'act_threshold':      float(config.get('act_threshold',  0.5)),
+            'internal_representation':                                      config.get('internal_representation',                       'transformer'),
+
 
         }
 
@@ -288,7 +290,7 @@ class RunConfig(Config):
             'include_unweighted_training':   str_or_bool(config.get('includeUnweightedTraining',             False)),  
             'include_unweighted_validation': str_or_bool(config.get('includeUnweightedValidation',           False)), 
             'include_unweighted_testing':    str_or_bool(config.get('includeUnweightedTesting',              False)),
-            'include_diagnostics':           str_or_bool(config.get('includeDiagnostics',                    True))  # whether to run diagnostics
+            'include_diagnostics':           str_or_bool(config.get('includeDiagnostics',                    True))  # whether to run diagnostics TODO: diagnostics doesn't work for UT because None gradients are introduced
         }
 
         self.loss = {

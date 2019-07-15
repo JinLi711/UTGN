@@ -248,41 +248,83 @@ class RGNModel(object):
             else:
                 alphabet = None
 
-            if config.architecture['is_transformer']:   
-                transformer_config = merge_dicts(
-                    config.initialization, 
-                    config.architecture, 
-                    config.regularization, 
-                    config.optimization)
+            for case in switch(config.architecture['internal_representation']):
+                if case('transformer'):
+                    transformer_config = merge_dicts(
+                        config.initialization, 
+                        config.architecture, 
+                        config.regularization, 
+                        config.optimization)
 
-                inputs2 = tf.transpose(inputs, perm=[1,0,2])
-                recurrent_outputs = transformer.encoder_model(
-                    inputs2,
-                    transformer_config
-                )
-                recurrent_outputs = tf.transpose(
-                    recurrent_outputs,
-                    perm=[1,0,2])
+                    inputs2 = tf.transpose(inputs, perm=[1,0,2])
+                    recurrent_outputs = transformer.transformer(
+                        inputs2,
+                        transformer_config
+                    )
+                    recurrent_outputs = tf.transpose(
+                        recurrent_outputs,
+                        perm=[1,0,2])
+                elif case('recurrent'):
+                    # Create recurrent layer(s) that translate 
+                    # primary sequences into internal representation
+                    recurrence_config = merge_dicts(
+                        config.initialization, 
+                        config.architecture, 
+                        config.regularization, 
+                        config.optimization, 
+                        config.computing, config.io)
 
-            else:
-                # Create recurrent layer(s) that translate 
-                # primary sequences into internal representation
-                recurrence_config = merge_dicts(
-                    config.initialization, 
-                    config.architecture, 
-                    config.regularization, 
-                    config.optimization, 
-                    config.computing, config.io)
+                    # inputs: [NUM_STEPS, BATCH_SIZE, RECURRENT_LAYER_SIZE]
+                    # recurrent_outputs: [NUM_STEPS, BATCH_SIZE, RECURRENT_LAYER_SIZE]
 
-                # inputs: [NUM_STEPS, BATCH_SIZE, RECURRENT_LAYER_SIZE]
-                # recurrent_outputs: [NUM_STEPS, BATCH_SIZE, RECURRENT_LAYER_SIZE]
+                    recurrent_outputs, recurrent_states = _higher_recurrence(
+                        mode, 
+                        recurrence_config, 
+                        inputs,
+                        num_stepss, 
+                        alphabet=alphabet)
+                elif case('none'):
+                    recurrent_outputs = inputs
+                
+                else:
+                    raise ValueError('Not an available internal representation.')
 
-                recurrent_outputs, recurrent_states = _higher_recurrence(
-                    mode, 
-                    recurrence_config, 
-                    inputs,
-                    num_stepss, 
-                    alphabet=alphabet)
+
+            # if config.architecture['is_transformer']:   
+            #     transformer_config = merge_dicts(
+            #         config.initialization, 
+            #         config.architecture, 
+            #         config.regularization, 
+            #         config.optimization)
+
+            #     inputs2 = tf.transpose(inputs, perm=[1,0,2])
+            #     recurrent_outputs = transformer.transformer(
+            #         inputs2,
+            #         transformer_config
+            #     )
+            #     recurrent_outputs = tf.transpose(
+            #         recurrent_outputs,
+            #         perm=[1,0,2])
+
+            # else:
+            #     # Create recurrent layer(s) that translate 
+            #     # primary sequences into internal representation
+            #     recurrence_config = merge_dicts(
+            #         config.initialization, 
+            #         config.architecture, 
+            #         config.regularization, 
+            #         config.optimization, 
+            #         config.computing, config.io)
+
+            #     # inputs: [NUM_STEPS, BATCH_SIZE, RECURRENT_LAYER_SIZE]
+            #     # recurrent_outputs: [NUM_STEPS, BATCH_SIZE, RECURRENT_LAYER_SIZE]
+
+            #     recurrent_outputs, recurrent_states = _higher_recurrence(
+            #         mode, 
+            #         recurrence_config, 
+            #         inputs,
+            #         num_stepss, 
+            #         alphabet=alphabet)
 
             # Tertiary structure generation
             if config.loss['tertiary_weight'] > 0:
@@ -427,6 +469,8 @@ class RGNModel(object):
                     'ids': ids})
                 diagnostic_ops.update(grads_and_vars_dict)
 
+                
+
             # Curriculum
             if mode == 'training' \
             and config.curriculum['behavior'] in [
@@ -551,7 +595,11 @@ class RGNModel(object):
             diagnostic dict
         """
 
+        for k, v in self._diagnostic_ops.items():
+            print("KEY: ", k, " VALUE: ", v)
+
         diagnostic_dict = ops_to_dict(session, self._diagnostic_ops)
+        
 
         # write event summaries to disk
         if self.config.io['log_model_summaries']:
@@ -1825,6 +1873,10 @@ def _training(config, loss):
     # obtain and process gradients
     grads_and_vars = optimizer.compute_gradients(loss)
     threshold = config['gradient_threshold']
+    # print(grads_and_vars[0])
+    # from sys import exit
+    # exit()
+    # grads_and_vars = tf.Print(grads_and_vars, [grads_and_vars])
 
     if threshold != float('inf'):
         for case in switch(config['rescale_behavior']):
@@ -1839,6 +1891,7 @@ def _training(config, loss):
                     (tf.clip_by_value(g, -threshold, threshold), v)\
                     for g, v in grads_and_vars]
 
+    
     # apply gradients and return stepping op
     global_step = tf.get_variable(
         initializer=tf.constant_initializer(0), 
@@ -1857,6 +1910,7 @@ def _training(config, loss):
     grads_and_vars_dict.update({
         ('v' + str(i)): v for i, (_, v) in enumerate(grads_and_vars)})
 
+    # print(grads_and_vars_dict)
     return global_step, minimize_op, grads_and_vars_dict
 
 def _history(config, loss, loss_history=None, 
