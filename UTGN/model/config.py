@@ -2,11 +2,11 @@
 
 The model configuration class contains attributes on:
     input/outputs
-    computing (dealing with CPUs/GPUs)
+    computing
     initialization
     optimization
     queuing
-    ciriculum (???)
+    ciriculum
     architecture
     regularization
     loss
@@ -22,7 +22,6 @@ The running configuration class contains attributes on:
 
 TODO: realign the dictionaries
 TODO: label all parameters
-TODO: make sure the parameters don't contradict
 TODO: rename all the config inputs
 """
 
@@ -78,8 +77,6 @@ class RGNConfig(Config):
 
     TODO: make the names match:
     example: data_files and dataFiles
-
-    TODO: make descriptions for all these parameters
     """
 
     def _create_config(self, config):
@@ -186,7 +183,6 @@ class RGNConfig(Config):
             'include_recurrent_outputs_between_layers': str_or_bool(config.get('includeRecurrentOutputsBetweenLayers', True)), # HO
             'recurrent_layer_size':                     eval_if_str(config.get('recurrentSize',                        [20])),
             'higher_order_layers':                      str_or_bool(config.get('higherOrderLayers',                    False)),
-            'include_dihedrals_between_layers':         str_or_bool(config.get('includeDihedralsBetweenLayers',        False)), # HO
             'residual_connections_every_n_layers':      int_or_none(config.get('residualConnectionsEveryNLayers',      0)), # HO
             'first_residual_connection_from_nth_layer': int_or_none(config.get('firstResidualConnectionFromNthLayer',  1)), # HO
             'recurrent_to_output_skip_connections':     str_or_bool(config.get('recurrentToOutputSkipConnections',     False)), # HO

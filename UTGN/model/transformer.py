@@ -485,7 +485,7 @@ def _ut_encoder(state, inputs_mask, config):
     return encoding
 
 
-def encoder_model(state, config):
+def _encoder_model(state, config):
     """
     Create the tranformer encoder model.
 
