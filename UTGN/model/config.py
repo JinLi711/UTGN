@@ -21,10 +21,9 @@ The running configuration class contains attributes on:
     loss
 
 TODO: realign the dictionaries
-TODO: generalize for transformer
 TODO: label all parameters
-TODO: change around the dictionaries such that there 
-is an individual RNN dict and individual transformer dict.
+TODO: make sure the parameters don't contradict
+TODO: rename all the config inputs
 """
 
 from ast import literal_eval
@@ -112,7 +111,6 @@ class RGNConfig(Config):
             'num_reconstruction_parallel_iters':    int(config.get('numReconstructionParallelIters', 4)) # Number of parallel iterations for creating the 3D structure.
         }
 
-        # TODO: see if I can use any of these ideas for transformer
         self.initialization = {
             'graph_seed':                        int_or_none(config.get('randSeed',                      None)),
             'angle_shift':                       eval_if_str(config.get('angleShift',                    [0., 0., 0.])), # The angles by which to shift the predicted dihedral angles.
@@ -172,27 +170,30 @@ class RGNConfig(Config):
         }
 
         self.architecture = {
+            'alphabet_size':                            eval_if_str(config.get('alphabetSize',                         None)), # pHO
+            'alphabet_trainable':                       str_or_bool(config.get('alphabetTrainable',                    True)),
+            'include_primary':                          str_or_bool(config.get('includePrimary',                       True)),
+            'include_evolutionary':                     str_or_bool(config.get('includeEvolutionary',                  False)),
+            'recurrent_nonlinear_out_proj_size':        eval_if_str(config.get('recurrentNonlinearOutputProjSize',     None)),
+            'recurrent_nonlinear_out_proj_function':                config.get('recurrentNonlinearOutputProjFunction', 'tanh'),
+            'tertiary_output':                                      config.get('tertiaryOutput',                       'linear'),
+            'internal_representation':                                      config.get('internal_representation',                       'transformer'),
+
+            # RNN Parameters
             'recurrent_unit':                                       config.get('recurrentUnit',                        'LSTM'),
-            'recurrent_layer_size':                     eval_if_str(config.get('recurrentSize',                        [20])),
             'recurrent_peepholes':                      str_or_bool(config.get('recurrentPeepholes',                   True)), # LSTM
-            'all_to_all_peepholes':                     str_or_bool(config.get('allToAllPeepholes',                    False)), # LSTM
             'bidirectional':                            str_or_bool(config.get('bidirectional',                        False)), # pHO
-            'higher_order_layers':                      str_or_bool(config.get('higherOrderLayers',                    False)),
             'include_recurrent_outputs_between_layers': str_or_bool(config.get('includeRecurrentOutputsBetweenLayers', True)), # HO
+            'recurrent_layer_size':                     eval_if_str(config.get('recurrentSize',                        [20])),
+            'higher_order_layers':                      str_or_bool(config.get('higherOrderLayers',                    False)),
             'include_dihedrals_between_layers':         str_or_bool(config.get('includeDihedralsBetweenLayers',        False)), # HO
             'residual_connections_every_n_layers':      int_or_none(config.get('residualConnectionsEveryNLayers',      0)), # HO
             'first_residual_connection_from_nth_layer': int_or_none(config.get('firstResidualConnectionFromNthLayer',  1)), # HO
             'recurrent_to_output_skip_connections':     str_or_bool(config.get('recurrentToOutputSkipConnections',     False)), # HO
             'input_to_recurrent_skip_connections':      str_or_bool(config.get('inputToRecurrentSkipConnections',      False)), # HO
             'all_to_recurrent_skip_connections':        str_or_bool(config.get('allToRecurrentSkipConnections',        False)), # HO
-            'recurrent_nonlinear_out_proj_size':        eval_if_str(config.get('recurrentNonlinearOutputProjSize',     None)),
-            'recurrent_nonlinear_out_proj_function':                config.get('recurrentNonlinearOutputProjFunction', 'tanh'),
-            'tertiary_output':                                      config.get('tertiaryOutput',                       'linear'),
-            'alphabet_size':                            eval_if_str(config.get('alphabetSize',                         None)), # pHO
-            'alphabet_trainable':                       str_or_bool(config.get('alphabetTrainable',                    True)),
-            'include_primary':                          str_or_bool(config.get('includePrimary',                       True)),
-            'include_evolutionary':                     str_or_bool(config.get('includeEvolutionary',                  False)),
-            'is_transformer':                     str_or_bool(config.get('is_transformer',                  True)),
+        
+            # Transformer Parameters
             'transformer_layers':                     int_or_none(config.get('transformer_layers',                  6)),
             'transformer_heads':                     int_or_none(config.get('transformer_heads',                  8)),
             'transformer_ff_dims':                     int_or_none(config.get('transformer_ff_dims',                  512)),
@@ -200,8 +201,10 @@ class RGNConfig(Config):
             'transformer_type':                                       config.get('transformer_type',                        'vanilla'),
             'act_max_steps':                     int_or_none(config.get('act_max_steps',                  10)),
             'act_threshold':      float(config.get('act_threshold',  0.5)),
-            'internal_representation':                                      config.get('internal_representation',                       'transformer'),
-
+            'transition_function':                                       config.get('transition_function',                        'feed_forward'),
+            'seperable_kernel_size':                     int_or_none(config.get('seperable_kernel_size',                  3)),
+            'include_pos_encodings':        str_or_bool(config.get('include_pos_encodings',        False)), # HO
+            
 
         }
 

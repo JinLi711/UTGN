@@ -3,14 +3,10 @@
 Input tensor of shape [BATCH_SIZE, SEQ_LEN, FEATURES]
 Output tensor of the same shape.
 
-Code adapted from tensor2tensor.
+Code adapted from tensor2tensor. 
+https://github.com/tensorflow/tensor2tensor/
 
-# TODO: Take a look at _higher_recurrence and perform similar
-functions (like updating config, etc)
-# TODO: add trainable parameters to collection 
-(check _recurrence)
-TODO: allow feed forward to be replacable by 
-1d seperable convolution
+TODO: include positional encodings at every time step for UT
 """
 
 import numpy as np
@@ -28,6 +24,7 @@ def _get_mean_std(x):
     variance = tf.reduce_mean(squared, axis=-1, keepdims=True)
     std = tf.sqrt(variance)
     return mean, std
+
 
 def _layer_norm(layer):
     """Perform layer normalization.
@@ -54,6 +51,87 @@ def _layer_norm(layer):
         norm = (layer - mean) / (std + 1e-6)
         return norm * scale + base
     
+
+def _feed_forward(x, d_model, d_ff, keep_prob, train=True):
+    """Feed forward layer along with of relu and dropout.
+    
+    FFN(x) = max(0,xW1+b1)W2+b2
+    
+    Args:
+        x: Input tensor.
+        d_model: dimension of W2.
+        d_ff: dimension of W1.
+        keep_prob: The drop out probability.
+        train: train or predict
+        
+    Returns:
+        Tensor
+    """
+
+    with tf.variable_scope("feed_forward"):
+        hidden = tf.layers.dense(x, units=d_ff, name="hidden")
+        hidden = tf.nn.relu(hidden)
+        if train:
+            hidden = tf.nn.dropout(hidden, keep_prob=keep_prob)
+        return tf.layers.dense(hidden, units=d_model, name="out")
+
+
+def _generate_positional_encodings(
+    d_model, 
+    seq_len=5000,
+    time_step=0):
+    """Create positional encoding.
+    
+    Args:
+        d_model: dimension of input embeddings
+        seq_len: maximum sequence length of batch
+        
+    Returns:
+        Constant tensor of shape [1, seq_len, d_model]
+    """
+
+    encodings = np.zeros((seq_len, d_model), dtype=float)
+    position = np.arange(0, seq_len).reshape((seq_len, 1))
+    two_i = np.arange(0, d_model, 2)
+    div_term = np.exp(-np.log(10000.0) * two_i / d_model)
+    encodings[:, 0::2] = np.sin(position * div_term) \
+                         + np.sin(time_step * div_term)
+    encodings[:, 1::2] = np.cos(position * div_term) \
+                         + np.cos(time_step * div_term)
+
+    pos_encodings = tf.constant(
+        encodings.reshape((1, seq_len, d_model)),
+        dtype=tf.float32,
+        name="positional_encodings")
+
+    return pos_encodings
+
+
+def _prepare_embeddings(x, positional_encodings, 
+                        keep_prob, train=True, 
+                        include_pos_encodings=False):
+    """Add positional encoding and normalize embeddings.
+    
+    Args:
+        x: input embeddings of shape [BATCH_SIZE, SEQ_LEN, FEATURES].
+        positional_encodings: encoding tensor of shape [1, SEQ_LEN, FEATURES].
+        keep_prob: The drop out probability.
+        train: train or predict
+        
+    Returns:
+        Tensor of shape [BATCH_SIZE, SEQ_LEN, FEATURES].
+    """
+
+    with tf.variable_scope("prepare_input"):
+        if include_pos_encodings:
+            seq_len = tf.shape(x)[1]
+            x = x + positional_encodings[:, :seq_len, :]
+
+        if train:
+            x = tf.nn.dropout(x, keep_prob)
+        return _layer_norm(x)
+
+
     
 def _attention(query, key, value, mask, keep_prob, train=True):
     """Calculates scaled dot-product attention.
@@ -146,32 +224,8 @@ def _multi_head_attention(query, key, value, mask, heads, keep_prob, train=True)
         return tf.layers.dense(out, units=d_model, name="attention")
 
 
-def _feed_forward(x, d_model, d_ff, keep_prob, train=True):
-    """Feed forward layer along with of relu and dropout.
-    
-    FFN(x) = max(0,xW1+b1)W2+b2
-    
-    Args:
-        x: Input tensor.
-        d_model: dimension of W2.
-        d_ff: dimension of W1.
-        keep_prob: The drop out probability.
-        train: train or predict
-        
-    Returns:
-        Tensor
-    """
-
-    with tf.variable_scope("feed_forward"):
-        hidden = tf.layers.dense(x, units=d_ff, name="hidden")
-        hidden = tf.nn.relu(hidden)
-        if train:
-            hidden = tf.nn.dropout(hidden, keep_prob=keep_prob)
-        return tf.layers.dense(hidden, units=d_model, name="out")
-
-
 def _encoder_layer(x, mask, layer_num, 
-                   heads, keep_prob, d_ff, 
+                   heads, keep_prob, d_ff, config,
                    train=True, transition_function="ff"):
     """Create a single encoder layer.
     
@@ -189,7 +243,6 @@ def _encoder_layer(x, mask, layer_num,
     """
 
     d_model = x.shape[-1]
-    # with tf.variable_scope(f"attention_{layer_num}"):
     with tf.variable_scope("attention_" + str(layer_num)):
         attention_out = _multi_head_attention(
             x,
@@ -207,16 +260,35 @@ def _encoder_layer(x, mask, layer_num,
         added = x + attention_out
         x = _layer_norm(added)
 
-    # with tf.variable_scope(f"ff_{layer_num}"):
-    with tf.variable_scope("ff_" + str(layer_num)):
-        ff_out = _feed_forward(x, d_model, d_ff, keep_prob, train=train)
+    transition_func = config['transition_function']
+    with tf.variable_scope(transition_func + "_" + str(layer_num)):
+
+        for case in switch(transition_func):
+            if case('feed_forward'):
+                trans_out = _feed_forward(
+                    x, 
+                    d_model, 
+                    d_ff, 
+                    keep_prob, 
+                    train=train)
+            elif case('1d_seperable_conv'):
+                trans_out = tf.layers.separable_conv1d(
+                    x, 
+                    d_model, 
+                    kernel_size=config['seperable_kernel_size'],
+                    padding="same",
+                    name="seperable_conv1d",
+                    activation=tf.nn.relu)
+            else:
+                raise ValueError("Not an available transition function.")
+
         if train:
-            ff_out = tf.nn.dropout(ff_out, keep_prob)
-        added = x + ff_out
+            trans_out = tf.nn.dropout(trans_out, keep_prob)
+        added = x + trans_out
         return _layer_norm(added)
 
 
-def _encoder(x, mask, n_layers, heads, keep_prob, d_ff, train=True):
+def _encoder(x, mask, n_layers, heads, keep_prob, d_ff, config, train=True):
     """Create the encoder architecture
     
     Args:
@@ -241,58 +313,9 @@ def _encoder(x, mask, n_layers, heads, keep_prob, d_ff, train=True):
                 heads=heads,
                 keep_prob=keep_prob,
                 d_ff=d_ff,
+                config=config,
                 train=train)
         return x
-
-
-def _generate_positional_encodings(d_model, seq_len=5000):
-    """Create positional encoding.
-    
-    Args:
-        d_model: dimension of input embeddings
-        seq_len: maximum sequence length of batch
-        
-    Returns:
-        Constant tensor of shape [1, seq_len, d_model]
-    """
-
-    encodings = np.zeros((seq_len, d_model), dtype=float)
-    position = np.arange(0, seq_len).reshape((seq_len, 1))
-    two_i = np.arange(0, d_model, 2)
-    div_term = np.exp(-np.log(10000.0) * two_i / d_model)
-    encodings[:, 0::2] = np.sin(position * div_term)
-    encodings[:, 1::2] = np.cos(position * div_term)
-
-    pos_encodings = tf.constant(
-        encodings.reshape((1, seq_len, d_model)),
-        dtype=tf.float32,
-        name="positional_encodings")
-
-    return pos_encodings
-
-
-def _prepare_embeddings(x, positional_encodings, 
-                        keep_prob, train=True):
-    """Add positional encoding and normalize embeddings.
-    
-    Args:
-        x: input embeddings of shape [BATCH_SIZE, SEQ_LEN, FEATURES].
-        positional_encodings: encoding tensor of shape [1, SEQ_LEN, FEATURES].
-        keep_prob: The drop out probability.
-        train: train or predict
-        
-    Returns:
-        Tensor of shape [BATCH_SIZE, SEQ_LEN, FEATURES].
-    """
-
-    with tf.variable_scope("prepare_input"):
-        _, seq_len, _ = x.shape
-        # TODO: put positional encoding back in
-        # x = x + positional_encodings[:, :seq_len, :]
-
-        if train:
-            x = tf.nn.dropout(x, keep_prob)
-        return _layer_norm(x)
 
 
 def _ut_function(state,
@@ -322,12 +345,18 @@ def _ut_function(state,
         remainders: act remainders
         n_updates: act n_updates
         new_state: new state
-        
-    TODO: include positional encodings
     """
 
     num_layers = config['transformer_layers']
     threshold = config['act_threshold']
+
+    # if config['include_pos_encodings']:
+    #     seq_len = tf.shape(state)[1]
+    #     d_model = int(state.shape[2])
+    #     state = state + _generate_positional_encodings(
+    #         d_model,
+    #         time_step=step+1
+    #     )[:, :seq_len, :]
 
     with tf.variable_scope("sigmoid_activation_for_pondering"):
         p = tf.layers.dense(
@@ -409,6 +438,7 @@ def _should_continue(u0, u1, halting_probability, u2, n_updates, u3, config):
         tf.logical_and(tf.less(halting_probability, threshold),
                        tf.less(n_updates, act_max_steps)))
 
+
 def _ut_encoder(state, inputs_mask, config):
     """Universal transformer (encoder portion).
 
@@ -419,7 +449,6 @@ def _ut_encoder(state, inputs_mask, config):
         Tensor of shape [batch_size, length, input_dim]
     """
 
-    # seq_length = config['num_steps']
     seq_length = tf.shape(state)[1]
     batch_size = state.shape[0]
     input_dim = state.shape[2]
@@ -439,18 +468,19 @@ def _ut_encoder(state, inputs_mask, config):
 
     def _encoder_layer_(x, layer_num):
         return _encoder_layer(x, inputs_mask, layer_num, 
-            heads, keep_prob, d_ff)
+            heads, keep_prob, d_ff, config)
 
     def _ut_function_(state, step, halting_probability, remainders, n_updates,
                     previous_state):
         return _ut_function(state, step, halting_probability, remainders, n_updates,
                 previous_state, _encoder_layer_, config)
 
-    (_, _, _, remainder, n_updates, encoding) = tf.while_loop(
-        _should_continue_,
-        _ut_function_,
-        (state, step, halting_probability, remainders, n_updates, previous_state),
-        maximum_iterations=act_max_steps + 1)
+    with tf.variable_scope("ut_encoder"):
+        (_, _, _, remainder, n_updates, encoding) = tf.while_loop(
+            _should_continue_,
+            _ut_function_,
+            (state, step, halting_probability, remainders, n_updates, previous_state),
+            maximum_iterations=act_max_steps + 1)
 
     return encoding
 
@@ -498,7 +528,8 @@ def encoder_model(state, config):
     input_embeddings = _prepare_embeddings(
         state,
         positional_encodings=positional_encodings,
-        keep_prob=keep_prob)
+        keep_prob=keep_prob,
+        include_pos_encodings=config['include_pos_encodings'])
 
     for case in switch(config['transformer_type']):
         if case('vanilla'):
@@ -509,6 +540,7 @@ def encoder_model(state, config):
                     heads=heads,
                     keep_prob=keep_prob,
                     d_ff=d_ff,
+                    config=config,
                     train=True)
         elif case('universal'):
             out = _ut_encoder(
@@ -517,7 +549,6 @@ def encoder_model(state, config):
                     config)
         else:
             raise ValueError('Not an available transformer type.')
-            # out = None
 
     return out
 

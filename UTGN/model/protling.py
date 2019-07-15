@@ -2,6 +2,7 @@
 
 TODO: make sure all strings are in single quotes
 TODO: rename protling to something more descriptive
+TODO: remove unnecceary parse arguments
 """
 
 import os
@@ -624,6 +625,7 @@ def run_model(args):
 
 if __name__ == '__main__':
     # parse command-line arguments
+    # TODO: remove the need for directory path
     parser = argparse.ArgumentParser(description="Run RGN model.")
     parser.add_argument(
         '-d', '--base_directory',
@@ -678,7 +680,8 @@ if __name__ == '__main__':
 
     start_time = time.time()
 
-    while run_model(args): pass
+    while run_model(args): 
+        pass
 
     end_time = time.time()
     hours_elapsed = (end_time - start_time) / 3600

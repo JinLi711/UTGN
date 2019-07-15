@@ -5,6 +5,8 @@ The implicit ordering of tensor dimensions is:
     [NUM_STEPS, BATCH_SIZE, NUM_DIHEDRALS, NUM_DIMENSIONS]
 
 Tensors have this orientation unless otherwise labeled.
+
+TODO: change around name/variable scopes
 """
 
 import os
@@ -128,31 +130,15 @@ class RGNModel(object):
             raise RuntimeError('Model already started; cannot create new objects.')
 
     def _create_graph(self, mode, config):
-        """Creates TensorFlow computation graph.
+        """Creates TensorFlow computation graph depending on the mode.
 
-        Creates a different model depending on whether mode is set to 'training' or 'evaluation'.
-        The semantics are such that the head (default 'training' mode) model is the one
-        required for starting, training, and checkpointing. Additionally the user may create any 
-        number of 'evaluation' models that depend on the head model, but supplement it with 
-        additional data sets (and different model semantics (e.g. no dropout)) for the evaluation 
-        and logging of their performance. However a head model is always required, and it is the 
-        only one that exposes the core methods for starting and training.
+        To start, train, and checkpoint a model, the user builds the head (training) graph.
+        The user may create any number of 'evaluation' models that depend on the head model, but with additional data sets, different model semantics (e.g. no dropout) for the evaluation, and logging of their performance.
 
-        Note that the head model creates all variables, even ones it doesn't use, because it is 
-        the one with the reuse=None semantics. Ops however are specific to each model type and
-        so some ops are missing from the training model and vice-versa.
-
-        Almost all graph construction is done in this function, which relies on a number of 
-        private methods to do the actual construction. Methods internal to this class are ad hoc 
-        and thus not meant for general use--general methods are placed in separate *_ops python 
-        modules. Some parts of graph construction, namely summary ops, are done in the start 
-        method, to ensure that all models have been created.
-
-        There are two types of internal (private, prefaced with _) variables stored in each
-        object. One are ops collections, like training_ops, evaluation_ops, etc. These are lists 
-        of ops that are run when the similarly named object method is called. As the graph is 
-        built up, ops are added to these lists. The second type of variables are various nodes
-        that are like TF methods, e.g. the initializer, saver, etc, which are stored in the
+        Two types of internal variables stored in each object:
+            ops collections, like training_ops, evaluation_ops, etc. 
+                As the graph is built up, ops are added to these lists. 
+            various nodes that are like TF methods, like the initializer, saver, etc, which are stored in the
         object and are accessed by various methods when necessary.
 
         Args:
@@ -257,7 +243,7 @@ class RGNModel(object):
                         config.optimization)
 
                     inputs2 = tf.transpose(inputs, perm=[1,0,2])
-                    recurrent_outputs = transformer.transformer(
+                    recurrent_outputs = transformer.encoder_model(
                         inputs2,
                         transformer_config
                     )
@@ -288,43 +274,6 @@ class RGNModel(object):
                 
                 else:
                     raise ValueError('Not an available internal representation.')
-
-
-            # if config.architecture['is_transformer']:   
-            #     transformer_config = merge_dicts(
-            #         config.initialization, 
-            #         config.architecture, 
-            #         config.regularization, 
-            #         config.optimization)
-
-            #     inputs2 = tf.transpose(inputs, perm=[1,0,2])
-            #     recurrent_outputs = transformer.transformer(
-            #         inputs2,
-            #         transformer_config
-            #     )
-            #     recurrent_outputs = tf.transpose(
-            #         recurrent_outputs,
-            #         perm=[1,0,2])
-
-            # else:
-            #     # Create recurrent layer(s) that translate 
-            #     # primary sequences into internal representation
-            #     recurrence_config = merge_dicts(
-            #         config.initialization, 
-            #         config.architecture, 
-            #         config.regularization, 
-            #         config.optimization, 
-            #         config.computing, config.io)
-
-            #     # inputs: [NUM_STEPS, BATCH_SIZE, RECURRENT_LAYER_SIZE]
-            #     # recurrent_outputs: [NUM_STEPS, BATCH_SIZE, RECURRENT_LAYER_SIZE]
-
-            #     recurrent_outputs, recurrent_states = _higher_recurrence(
-            #         mode, 
-            #         recurrence_config, 
-            #         inputs,
-            #         num_stepss, 
-            #         alphabet=alphabet)
 
             # Tertiary structure generation
             if config.loss['tertiary_weight'] > 0:
