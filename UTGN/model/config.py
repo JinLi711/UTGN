@@ -282,7 +282,7 @@ class RunConfig(Config):
             'num_training_invocations':              int(config.get('numTrainingInvocations',                1)),     # evaluation (! actual training)
             'num_validation_invocations':            int(config.get('numValidationInvocations',              1)),
             'num_testing_invocations':               int(config.get('numTestingInvocations',                 1)),
-            'include_weighted_training':     str_or_bool(config.get('includeWeightedTraining',               False)),  # introduce weights
+            'include_weighted_training':     str_or_bool(config.get('includeWeightedTraining',               False)),  # introduce weights TODO: this causes the training to stop early
             'include_weighted_validation':   str_or_bool(config.get('includeWeightedValidation',             False)),  # introduce weights
             'include_weighted_testing':      str_or_bool(config.get('includeWeightedTesting',                False)),  # introduce weights
             'include_unweighted_training':   str_or_bool(config.get('includeUnweightedTraining',             False)),  

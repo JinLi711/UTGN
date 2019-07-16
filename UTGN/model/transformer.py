@@ -439,7 +439,7 @@ def _should_continue(u0, u1, halting_probability, u2, n_updates, u3, config):
                        tf.less(n_updates, act_max_steps)))
 
 
-def _ut_encoder(state, inputs_mask, config):
+def _ut_encoder(state, inputs_mask, config, train):
     """Universal transformer (encoder portion).
 
     Args:
@@ -468,7 +468,7 @@ def _ut_encoder(state, inputs_mask, config):
 
     def _encoder_layer_(x, layer_num):
         return _encoder_layer(x, inputs_mask, layer_num, 
-            heads, keep_prob, d_ff, config)
+            heads, keep_prob, d_ff, config, train=train)
 
     def _ut_function_(state, step, halting_probability, remainders, n_updates,
                     previous_state):
@@ -485,7 +485,7 @@ def _ut_encoder(state, inputs_mask, config):
     return encoding
 
 
-def _encoder_model(state, config):
+def _encoder_model(state, config, mode):
     """
     Create the tranformer encoder model.
 
@@ -501,6 +501,7 @@ def _encoder_model(state, config):
         Tensor of shape [batch_size, length, input_dim]
     """
 
+    train = (mode == 'training')
     dense_input_dim = config['transformer_dense_input_dim']
     max_length = config['num_steps']
     keep_prob = config['transformer_keep_prob']
@@ -541,12 +542,13 @@ def _encoder_model(state, config):
                     keep_prob=keep_prob,
                     d_ff=d_ff,
                     config=config,
-                    train=True)
+                    train=train)
         elif case('universal'):
             out = _ut_encoder(
                     input_embeddings, 
                     inputs_mask, 
-                    config)
+                    config,
+                    train=train)
         else:
             raise ValueError('Not an available transformer type.')
 

@@ -50,16 +50,27 @@ def evaluate_and_log(log_file, configs, models, session):
 
     """
     # evaluation of weighted losses
-    wt_train_loss_dict = models['eval_wt_train'].evaluate(session) if configs['run'].evaluation['include_weighted_training'] else {}
-    wt_val_loss_dict = models['eval_wt_val'].evaluate(session) if configs['run'].evaluation['include_weighted_validation'] else {}
-    wt_test_loss_dict = models['eval_wt_test'].evaluate(session) if configs['run'].evaluation['include_weighted_testing'] else {}
+    wt_train_loss_dict = models['eval_wt_train'].evaluate(session) \
+                         if configs['run'].evaluation['include_weighted_training'] \
+                         else {}
+    wt_val_loss_dict = models['eval_wt_val'].evaluate(session) \
+                       if configs['run'].evaluation['include_weighted_validation'] \
+                       else {}
+    wt_test_loss_dict = models['eval_wt_test'].evaluate(session) \
+                        if configs['run'].evaluation['include_weighted_testing'] \
+                        else {}
 
     # diagnostics
     if configs['run'].evaluation['include_diagnostics']: 
         diagnostics = models['training'].diagnose(session)
     else:
-        diagnostics = {k: float('nan') for k in ('min_weight', 'max_weight', 'min_grad', 'max_grad', 
-                                                 'curriculum_step', 'curriculum_quantiles')}
+        diagnostics = {k: float('nan') for k in (
+            'min_weight', 
+            'max_weight', 
+            'min_grad', 
+            'max_grad', 
+            'curriculum_step', 
+            'curriculum_quantiles')}
 
     # Retrieve the correct loss.
     for loss_key in ['tertiary_loss_all']:
@@ -104,9 +115,15 @@ def evaluate_and_log(log_file, configs, models, session):
     # Additional diagnostics and losses if there's a curriculum.
     if configs['training'].curriculum['mode'] is not None:
         # evaluation of unweighted losses
-        unwt_train_loss_dict = models['eval_unwt_train'].evaluate(session) if configs['run'].evaluation['include_unweighted_training']   else {}
-        unwt_val_loss_dict   = models['eval_unwt_val'].evaluate(session)   if configs['run'].evaluation['include_unweighted_validation'] else {}
-        unwt_test_loss_dict  = models['eval_unwt_test'].evaluate(session)  if configs['run'].evaluation['include_unweighted_testing']    else {}
+        unwt_train_loss_dict = models['eval_unwt_train'].evaluate(session)\
+                               if configs['run'].evaluation['include_unweighted_training']\
+                               else {}
+        unwt_val_loss_dict   = models['eval_unwt_val'].evaluate(session)\
+                               if configs['run'].evaluation['include_unweighted_validation']\
+                               else {}
+        unwt_test_loss_dict  = models['eval_unwt_test'].evaluate(session)\
+                               if configs['run'].evaluation['include_unweighted_testing']\
+                               else {}
 
         # Retrieve the correct loss.
         for loss_key in ['tertiary_loss_all']:
