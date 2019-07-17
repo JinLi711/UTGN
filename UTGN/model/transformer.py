@@ -509,10 +509,12 @@ def _encoder_model(state, config, mode):
     heads = config['transformer_heads']
     d_ff = config['transformer_ff_dims']
 
+    # state = tf.Print(state, [state])
     state = tf.layers.dense(
         state,
         dense_input_dim,
-        activation=tf.nn.softmax)
+        activation=tf.nn.relu)
+    # state = tf.Print(state, [state])
 
     state_shape = tf.shape(state)
     embed_dim = state.get_shape()[2].value
@@ -551,6 +553,8 @@ def _encoder_model(state, config, mode):
                     train=train)
         else:
             raise ValueError('Not an available transformer type.')
+
+    # out = tf.Print(out, [out])
 
     return out
 

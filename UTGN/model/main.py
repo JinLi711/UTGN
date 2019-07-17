@@ -521,7 +521,8 @@ def run_model(args):
             # remove future log entries in current log files
             log_file = os.path.join(log_dir, 'error.log')
             if os.path.exists(log_file):
-                with open(log_file, 'rw+') as f:
+                # with open(log_file, 'rw+') as f:
+                with open(log_file, 'w+') as f:
                     while True:
                         new_line = f.readline().split()
                         if len(new_line) > 1:
