@@ -19,6 +19,16 @@ none_to1 = lambda x: -1 if x == None else x
 threshold = 0.5
 act_max_steps = 5
 
+
+def count_trainable_params():
+    """Count the total trainable parameters. """
+
+    total_params = [np.prod(v.get_shape().as_list()) \
+                    for v in tf.trainable_variables()]
+
+    return np.sum(total_params)
+    return total_params
+
 def _get_mean_std(x):
     mean = tf.reduce_mean(x, axis=-1, keepdims=True)
     squared = tf.square(x - mean)
@@ -528,15 +538,16 @@ def train():
     vocab_str = [f"{i}" for i in range(10)]
     vocab_str += ['X', 'S']
 
-    batch_size = 32  # 12000
-    d_model = 128  # 512
-    #     d_model = 512
-    heads = 2
-    keep_prob = 1.0
-    n_layers = 2  # 6
-    #     n_layers = 6
-    d_ff = 256  # 2048
-    #     d_ff = 2048
+    # batch_size = 32  # 12000
+    batch_size = 12000
+    # d_model = 128  # 512
+    d_model = 512
+    heads = 8
+    keep_prob = 0.9
+    # n_layers = 2  # 6
+    n_layers = 12
+    # d_ff = 256  # 2048
+    d_ff = 2048
     
     
     
@@ -630,7 +641,7 @@ def train():
     adam = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=1e-5)
     params = tf.trainable_variables()
     grads = tf.gradients(loss, params)
-    print(grads)
+    # print(grads)
     grads, _ = tf.clip_by_global_norm(grads, 5.)
     
     grads_and_vars = list(zip(grads, params))
@@ -647,7 +658,8 @@ def train():
     with tf.Session() as session:
         session.run(tf.global_variables_initializer())
 
-        for i in range(10000):
+        print(count_trainable_params())
+        for i in range(100000):
             lr = noam_learning_rate(i + 1, warm_up, d_model)
             
             batch_in, batch_out = generate_data(batch_size, seq_length, vocab_size)
@@ -660,7 +672,7 @@ def train():
                                                        inputs_mask: batch_in_mask,
                                                        output_mask: batch_out_mask
                                                    })
-            if i % 100 == 0:
+            if i % 1000 == 0:
                 print(f"step={i}\tloss={batch_loss: .6f}")
                 print(f"inp=  {__print_seq(batch_in[0])}")
                 print(f"exp={__print_seq(batch_out[0])}")
