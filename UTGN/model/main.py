@@ -244,7 +244,7 @@ def run_model(args):
     # set GPU-related environmental options and config settings
     # set it on the terminal instead
     # TODO: add this back in
-    # os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu) if args.gpu is not None else ''
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu) if args.gpu is not None else ''
     # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
     # files and directories
