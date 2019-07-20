@@ -1,6 +1,10 @@
 """Create PDB file for predicted and actual 3D structure.
 
 TODO: check if coordinates are in the right order
+TODO: why is input coordinates 100 times larger than
+it is supposed to be?
+-- answer: measurements are in picometers (10e-12), whereas
+PDB files should be in angstroms (10e-10)
 """
 
 from ast import literal_eval
@@ -221,7 +225,7 @@ def create_pdb_file(protein, save_dir):
                         name=atom,
                         coord=coords[j + k, :],
                         bfactor=0,
-                        occupancy=0,
+                        occupancy=1,
                         altloc=' ',
                         fullname=" {} ".format(atom),
                         serial_number=0)
@@ -234,11 +238,13 @@ def create_pdb_file(protein, save_dir):
         io.save(save_dir + name + '_' + pdb_type + '.pdb')
         return structure
 
-    coords = np.around(protein.actual_tertiary, 2)
+    coords = np.around(protein.actual_tertiary, 1)
+    coords = coords / 100
     create_structure(coords, "actual", remove_masked=True)
 
     if protein.pred_tertiary.size != 0:
-        coords = np.around(protein.pred_tertiary, 2)
+        coords = np.around(protein.pred_tertiary, 1)
+        coords = coords / 100
         create_structure(coords, "pred", remove_masked=False)
 
 
