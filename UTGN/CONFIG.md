@@ -3,10 +3,10 @@ Configuration files specify hyperparameter and architectural choices of an RGN m
 
 ```
 # Optional comment
-camelCaseOption <optionValue>
+option <optionValue>
 ```
 
-Below are the major options along with their descriptions and allowed values. Not all options are documented. For a complete list see [config.py](https://github.com/aqlaboratory/rgn/blob/master/model/config.py).
+Below are the major options along with their descriptions and allowed values. Not all options are documented.
 
 ## IO
 | Option Name | Acceptable Values | Description |
@@ -30,6 +30,7 @@ Below are the major options along with their descriptions and allowed values. No
 ## Architecture
 | Option Name | Acceptable Values | Description |
 | --- | --- | --- |
+| internal_representation | transformer, recurrent |  Either use the recurrent neural network or the transformer. |
 | includePrimary | boolean | if True include primary sequence as input |
 | includeEvolutionary | boolean | if True include PSSM as input |
 | tertiaryOutput | linear, linear_alphabet, angular, angular_alphabet | form of output units in last layer |
@@ -48,6 +49,16 @@ Below are the major options along with their descriptions and allowed values. No
 | recurrentToOutputSkipConnections | boolean | use skip connections from all hidden layers to final layer |
 | inputToRecurrentSkipConnections | boolean | use skip connections from input layer to all hidden layers |
 | allToRecurrentSkipConnections | boolean | use skip connections from all layers to final |
+| transformer_layers | integer | Number of layers for transformer
+| transformer_heads | integer | Number of heads for transformer
+| transformer_ff_dims | integer | Feed forward dimension for transformer
+| transformer_dense_input_dim | integer | Dimension of fully connected layer from inputs to transformer
+| transformer_type | vanilla or universal | Transformer type
+| act_max_steps | Integer | Number of iterations for ACT
+| act_threshold | real | Threshold for halting
+| transition_function | feed_forward, 1d_seperable_conv | Transition function to use for universal transformer
+| seperable_kernel_size | integer | Kernel size for seperable convolution
+| include_pos_encodings | Boolean | Whether to include positional encodings or not
 
 ## Regularization
 All keep probabilities correspond to 1 - dropout probability, and can be specified as a single real number to be used for all layers, or as a list of real numbers, one per layer.
@@ -63,6 +74,7 @@ All keep probabilities correspond to 1 - dropout probability, and can be specifi
 | recurVariationalDropout | boolean | if True uses variational dropout for recurrent state (requires recurKeepProb > 0) |
 | alphabetKeepProb | real or list of reals | keep probabilit(y,ies) of alphabet |
 | alphabetNormalization | \[batch,layer\]\_normalization | normalization for alphabet layer, if not None |
+| transformer_keep_prob | float | Keep probability for dropout.
 
 ## Optimization
 | Option Name | Acceptable Values | Description |
