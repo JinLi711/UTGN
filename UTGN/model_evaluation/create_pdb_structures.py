@@ -1,10 +1,4 @@
 """Create PDB file for predicted and actual 3D structure.
-
-TODO: check if coordinates are in the right order
-TODO: why is input coordinates 100 times larger than
-it is supposed to be?
--- answer: measurements are in picometers (10e-12), whereas
-PDB files should be in angstroms (10e-10)
 """
 
 from ast import literal_eval
@@ -18,7 +12,6 @@ from Bio.PDB.Chain import Chain
 from Bio.PDB.Model import Model
 from Bio.PDB.Structure import Structure
 from Bio.PDB import PDBIO
-
 
 NUM_DIMENSIONS = 3
 AA_LETTERS = {
@@ -105,10 +98,10 @@ def read_tertiary_file(path):
 
 def read_and_decode(filename_queue):
     """Parse a single instance of a tf record.
-    
+
     Args:
         filename_queue: tf queue
-        
+
     Returns:
         id_:tf tensor
         primary: tf tensor
@@ -123,15 +116,14 @@ def read_and_decode(filename_queue):
         serialized_example,
         context_features={'id': tf.FixedLenFeature((1, ), tf.string)},
         sequence_features={
-            'primary': tf.FixedLenSequenceFeature((1, ), tf.int64),
-            'tertiary': tf.FixedLenSequenceFeature(
-                (NUM_DIMENSIONS, ),
-               tf.float32,
-               allow_missing=True),
-            'mask':tf.FixedLenSequenceFeature(
-                (1, ), 
-                tf.float32, 
-                allow_missing=True)
+            'primary':
+            tf.FixedLenSequenceFeature((1, ), tf.int64),
+            'tertiary':
+            tf.FixedLenSequenceFeature((NUM_DIMENSIONS, ),
+                                       tf.float32,
+                                       allow_missing=True),
+            'mask':
+            tf.FixedLenSequenceFeature((1, ), tf.float32, allow_missing=True)
         })
 
     id_ = context['id'][0]
@@ -143,11 +135,11 @@ def read_and_decode(filename_queue):
 
 def tf_record_to_dict(tf_path, tertiary_dir):
     """Convert tfrecord to a list of Proteins.
-    
+
     Args:
         tf_path: path to tf record
         tertiary_dir: directory that holds .tertiary files
-        
+
     Returns:
         list of Proteins
     """
@@ -155,14 +147,12 @@ def tf_record_to_dict(tf_path, tertiary_dir):
     tf.reset_default_graph()
     with tf.Session() as sess:
         proteins = []
-        init_op = tf.group(
-            tf.global_variables_initializer(),
-            tf.local_variables_initializer())
+        init_op = tf.group(tf.global_variables_initializer(),
+                           tf.local_variables_initializer())
         sess.run(init_op)
 
-        filename_queue = tf.train.string_input_producer(
-            [tf_path],
-            shuffle=False)
+        filename_queue = tf.train.string_input_producer([tf_path],
+                                                        shuffle=False)
 
         attributes = read_and_decode(filename_queue)
         coord = tf.train.Coordinator()
@@ -174,8 +164,8 @@ def tf_record_to_dict(tf_path, tertiary_dir):
             id_, primary, tertiary, mask = sess.run(list(attributes))
             id_ = id_.decode("utf-8")
             try:
-                pred_coords = read_tertiary_file(
-                    tertiary_dir + id_ + '.tertiary')
+                pred_coords = read_tertiary_file(tertiary_dir + id_ +
+                                                 '.tertiary')
             except (FileNotFoundError, OSError):
                 pred_coords = np.array([])
             protein = Protein(id_, primary, tertiary, mask, pred_coords)
@@ -188,28 +178,28 @@ def tf_record_to_dict(tf_path, tertiary_dir):
 
 def create_pdb_file(protein, save_dir):
     """Create a PDB file from a Protein and return the structure.
-    
+
     Args:
         protein: Protein
         save_dir: directory to save pdb files
-        
+
     Returns:
         None
     """
 
     def create_structure(coords, pdb_type, remove_masked):
         """Create the structure.
-        
+
         Args:
             coords: 3D coordinates of structure
             pdb_type: predict or actual structure
-            remove_masked: whether to include masked atoms. If false, the masked atoms 
-                  have coordinates of [0,0,0].
-                  
+            remove_masked: whether to include masked atoms. If false,
+                           the masked atoms have coordinates of [0,0,0].
+
         Returns:
             structure
         """
-        
+
         name = protein.id_
         structure = Structure(name)
         model = Model(0)
@@ -221,14 +211,13 @@ def create_pdb_file(protein, save_dir):
                 j = 3 * i
                 atom_list = ['N', 'CA', 'CB']
                 for k, atom in enumerate(atom_list):
-                    new_atom = Atom(
-                        name=atom,
-                        coord=coords[j + k, :],
-                        bfactor=0,
-                        occupancy=1,
-                        altloc=' ',
-                        fullname=" {} ".format(atom),
-                        serial_number=0)
+                    new_atom = Atom(name=atom,
+                                    coord=coords[j + k, :],
+                                    bfactor=0,
+                                    occupancy=1,
+                                    altloc=' ',
+                                    fullname=" {} ".format(atom),
+                                    serial_number=0)
                     new_residue.add(new_atom)
                 chain.add(new_residue)
         model.add(chain)
@@ -250,11 +239,11 @@ def create_pdb_file(protein, save_dir):
 
 def create_pdb_files(proteins, save_dir):
     """Create multiple pdb files
-    
+
     Args:
         proteins: list of Proteins
         save_dir: directory to save pdb files
-    
+
     Returns:
         None
     """
@@ -266,20 +255,15 @@ def create_pdb_files(proteins, save_dir):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Create PDB structure")
 
-    parser.add_argument(
-        'tf_record',
-        default='.',
-        help='Path to tf record')
+    parser.add_argument('tf_record', default='.', help='Path to tf record')
 
-    parser.add_argument(
-        'tertiary_dir',
-        default='.',
-        help='Directory that contains .tertiary files')
+    parser.add_argument('tertiary_dir',
+                        default='.',
+                        help='Directory that contains .tertiary files')
 
-    parser.add_argument(
-        'pdb_dir',
-        default='.',
-        help='Directory to save PDB files')
+    parser.add_argument('pdb_dir',
+                        default='.',
+                        help='Directory to save PDB files')
 
     args = parser.parse_args()
 
