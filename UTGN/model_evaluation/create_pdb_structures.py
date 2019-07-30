@@ -1,6 +1,8 @@
 """Create PDB file for predicted and actual 3D structure.
 """
 
+import os
+import subprocess
 from ast import literal_eval
 import argparse
 import numpy as np
@@ -92,7 +94,7 @@ def read_tertiary_file(path):
     """Read .tertiary file"""
 
     coords = np.transpose(np.loadtxt(path))
-
+    # coords = np.fliplr(coords)
     return coords
 
 
@@ -248,12 +250,67 @@ def create_pdb_files(proteins, save_dir):
         None
     """
 
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
     for protein in proteins:
         create_pdb_file(protein, save_dir)
 
+def create_TM_files(proteins, pdb_dir, tm_dir):
+    """Run the TMScore script for each protein.
+
+    Args:
+        proteins: list of Proteins
+        pdb_dir: directory that contains pdb files
+        tm_dir: directory to save TM files
+
+    Returns:
+        None
+    """
+
+    if not os.path.exists(tm_dir):
+        os.makedirs(tm_dir)
+
+    tm_data = []
+    tm_scores = []
+    rmsds = []
+
+    for protein in proteins:
+        name = protein.id_
+        pdb_actual = pdb_dir + name + '_actual.pdb'
+        pdb_pred = pdb_dir + name + '_pred.pdb'
+        tm_file = tm_dir + 'tm_score_' + name + '.txt'
+        subprocess.call(
+            './TMScore ' + pdb_pred + ' ' + pdb_actual + ' > ' + tm_file, 
+            shell=True)
+
+        if os.path.getsize(tm_file) > 0:
+            f = open(tm_file, 'r').read().split('\n')
+            rmsd = f[14].split()[-1]
+            tm_score = f[16].split()[2]
+            data = name + '\t' + tm_score + '\t' + rmsd + '\n'
+            tm_data.append(data)
+            rmsds.append(float(rmsd))
+            tm_scores.append(float(tm_score))
+
+    f = open(tm_dir + 'summary.txt', "w")
+    f.write("Name\tTM Score\tRMSD\n")
+    for data in tm_data:
+        f.write(data)
+    
+    def avg(list_):
+        avg = sum(list_) / len(list_)
+        return str(round(avg, 4))
+
+    tm_score_avg = avg(tm_scores)
+    rmsd_avg = avg(rmsds)
+    f.write("Average" + '\t' + tm_score_avg + '\t' + rmsd_avg + '\n')
+    f.close()
+        
+
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Create PDB structure")
+    parser = argparse.ArgumentParser(description="Create PDB structure and calculate TM Score.")
 
     parser.add_argument('tf_record', default='.', help='Path to tf record')
 
@@ -265,8 +322,15 @@ if __name__ == '__main__':
                         default='.',
                         help='Directory to save PDB files')
 
+    parser.add_argument(
+        'tm_dir',
+        default='.',
+        help='Directory to save TM score files')
+
     args = parser.parse_args()
 
     proteins = tf_record_to_dict(args.tf_record, args.tertiary_dir)
 
     create_pdb_files(proteins, args.pdb_dir)
+
+    create_TM_files(proteins, args.pdb_dir, args.tm_dir)
