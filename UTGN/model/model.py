@@ -5,8 +5,6 @@ The implicit ordering of tensor dimensions is:
     [NUM_STEPS, BATCH_SIZE, NUM_DIHEDRALS, NUM_DIMENSIONS]
 
 Tensors have this orientation unless otherwise labeled.
-
-TODO: change around name/variable scopes
 """
 
 import os

@@ -34,14 +34,14 @@ def _higher_recurrence(mode, config, inputs, num_stepss, alphabet=None):
     initial_inputs = inputs
 
     if config['higher_order_layers']:
-        # higher-order recurrence that concatenates both directions 
+        # higher-order recurrence that concatenates both directions
         # and possibly additional outputs before sending to the next layer.
         # allow additional information to be incorporated in the passed activations
         # like dihedrals
-        
+
         layer_inputs = initial_inputs
         layers_recurrent_outputs = []
-        layers_recurrent_states  = []
+        layers_recurrent_states = []
         num_layers = len(config['recurrent_layer_size'])
         residual_n = config['residual_connections_every_n_layers']
         residual_shift = config['first_residual_connection_from_nth_layer'] - 1
@@ -51,22 +51,27 @@ def _higher_recurrence(mode, config, inputs, num_stepss, alphabet=None):
             with tf.variable_scope('layer' + str(layer_idx)):
                 # prepare layer-specific config
                 layer_config = deepcopy(config)
-                layer_config.update(
-                    {k: [config[k][layer_idx]] for k in [
+                layer_config.update({
+                    k: [config[k][layer_idx]]
+                    for k in [
                         'recurrent_layer_size',
                         'recurrent_input_keep_probability',
                         'recurrent_output_keep_probability',
                         'recurrent_keep_probability',
                         'recurrent_state_zonein_probability',
-                        'recurrent_memory_zonein_probability']})
+                        'recurrent_memory_zonein_probability'
+                    ]
+                })
+                layer_config.update({
+                    k: config[k][layer_idx]
+                    for k in [
+                        'alphabet_keep_probability', 'alphabet_normalization',
+                        'recurrent_init'
+                    ]
+                })
                 layer_config.update(
-                    {k: config[k][layer_idx] for k in [
-                        'alphabet_keep_probability',
-                        'alphabet_normalization',
-                        'recurrent_init']})
-                layer_config.update(
-                    {k: (config[k][layer_idx] \
-                    if not config['single_or_no_alphabet'] \
+                    {k: (config[k][layer_idx]
+                    if not config['single_or_no_alphabet']
                     else config[k]) for k in ['alphabet_size']})
 
                 # core lower-level recurrence
@@ -81,8 +86,8 @@ def _higher_recurrence(mode, config, inputs, num_stepss, alphabet=None):
                 and (layer_idx >= residual_n + residual_shift):
                     layer_recurrent_outputs = layer_recurrent_outputs \
                     + layers_recurrent_outputs[-residual_n]
-                    print(('residually wired layer ' \
-                          + str(layer_idx - residual_n + 1) \
+                    print(('residually wired layer '
+                          + str(layer_idx - residual_n + 1)
                           + ' to layer ' + str(layer_idx + 1)))
 
                 # add to list of recurrent layers' outputs
@@ -92,15 +97,15 @@ def _higher_recurrence(mode, config, inputs, num_stepss, alphabet=None):
 
                 # intermediate recurrences,
                 # only created if there's at least one layer on top of the current one
-                if layer_idx != num_layers - 1: # not last layer
+                if layer_idx != num_layers - 1:  # not last layer
                     layer_outputs = []
 
-                    # skip connections from all previous layers 
+                    # skip connections from all previous layers
                     # (these will not be connected to the final linear output layer)
                     if config['all_to_recurrent_skip_connections']:
                         layer_outputs.append(layer_inputs)
 
-                    # skip connections from initial inputs only 
+                    # skip connections from initial inputs only
                     # (these will not be connected to the final linear output layer)
                     if config['input_to_recurrent_skip_connections'] \
                     and not config['all_to_recurrent_skip_connections']:
@@ -113,7 +118,7 @@ def _higher_recurrence(mode, config, inputs, num_stepss, alphabet=None):
                     # feed outputs as inputs to the next layer up
                     layer_inputs = tf.concat(layer_outputs, 2)
 
-        # if recurrent to output skip connections are enabled, 
+        # if recurrent to output skip connections are enabled,
         # return all recurrent layer outputs, otherwise return only last one.
         # always return all states.
         if config['recurrent_to_output_skip_connections']:
@@ -123,14 +128,15 @@ def _higher_recurrence(mode, config, inputs, num_stepss, alphabet=None):
             return layer_recurrent_outputs, \
                    tf.concat(layers_recurrent_states, 1)
     else:
-        # simple recurrence, including multiple layers 
-        # that use TF's builtin functionality, 
+        # simple recurrence, including multiple layers
+        # that use TF's builtin functionality,
         # call lower-level recurrence function
         return _recurrence(mode, config, initial_inputs, num_stepss)
 
+
 def _recurrence(mode, config, inputs, num_stepss):
-    """Recurrent layer 
-    
+    """Recurrent layer
+
     Transforms inputs (like primary sequences) into an internal representation.
 
     Args:
@@ -143,44 +149,31 @@ def _recurrence(mode, config, inputs, num_stepss):
         outputs: [BATCH_SIZE, RECURRENT_LAYER_SIZE]
         states: [NUM_STEPS, BATCH_SIZE, RECURRENT_LAYER_SIZE]
      """
-    
+
     is_training = (mode == 'training')
     # reverse seq
     reverse = lambda seqs: tf.reverse_sequence(
-        seqs, 
-        num_stepss, 
-        seq_axis=0, 
-        batch_axis=1)
+        seqs, num_stepss, seq_axis=0, batch_axis=1)
 
     # create recurrent initialization dict
     if config['recurrent_init'] != None:
-        recurrent_init = dict_to_inits(
-            config['recurrent_init'], 
-            config['recurrent_seed'])
+        recurrent_init = dict_to_inits(config['recurrent_init'],
+                                       config['recurrent_seed'])
     else:
         for case in switch(config['recurrent_unit']):
             if case('LNLSTM'):
-                recurrent_init = {
-                    'base': None, 
-                    'bias': None
-                }
+                recurrent_init = {'base': None, 'bias': None}
             elif case('CudnnLSTM') or case('CudnnGRU'):
-                recurrent_init = {
-                    'base': dict_to_init({}), 
-                    'bias': None
-                }
+                recurrent_init = {'base': dict_to_init({}), 'bias': None}
             else:
-                recurrent_init = {
-                    'base': None, 
-                    'bias': tf.zeros_initializer()
-                }
+                recurrent_init = {'base': None, 'bias': tf.zeros_initializer()}
 
     # fused mode vs. explicit dynamic rollout mode
     if 'Cudnn' in config['recurrent_unit']:
         # cuDNN-based fusion
-        # assumes all (lower-order) layers are of the same size 
-        # (first layer size) and all input dropouts are the same 
-        # (first layer one). Does not support peephole connections, 
+        # assumes all (lower-order) layers are of the same size
+        # (first layer size) and all input dropouts are the same
+        # (first layer one). Does not support peephole connections,
         # and only supports input dropout as a form of regularization.
         layer_size = config['recurrent_layer_size'][0]
         num_layers = len(config['recurrent_layer_size'])
@@ -192,19 +185,18 @@ def _recurrence(mode, config, inputs, num_stepss):
             elif case('CudnnGRU'):
                 cell = cudnn_rnn.CudnnGRU
 
-        # need this layer because cuDNN dropout only applies to 
+        # need this layer because cuDNN dropout only applies to
         # inputs between layers, not the first inputs
-        if is_training and input_keep_prob < 1: 
-            inputs = tf.nn.dropout(
-                inputs, 
-                input_keep_prob, 
-                seed=config['dropout_seed'])
+        if is_training and input_keep_prob < 1:
+            inputs = tf.nn.dropout(inputs,
+                                   input_keep_prob,
+                                   seed=config['dropout_seed'])
 
         # this isn't needed, but it allows multiple cuDNN-based models
         # to run on the same GPU when num_layers = 1
         if num_layers > 1:
             dropout_kwargs = {
-                'dropout': 1 - input_keep_prob, 
+                'dropout': 1 - input_keep_prob,
                 'seed': config['dropout_seed']
             }
         else:
@@ -215,56 +207,47 @@ def _recurrence(mode, config, inputs, num_stepss):
         scopes = ['fw', 'bw'] if config['bidirectional'] else ['fw']
         for scope in scopes:
             with tf.variable_scope(scope):
-                rnn = cell(
-                    num_layers=num_layers, 
-                    num_units=layer_size, 
-                    direction=cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION, 
-                    kernel_initializer=recurrent_init['base'], 
-                    bias_initializer=recurrent_init['bias'], 
-                    **dropout_kwargs)
+                rnn = cell(num_layers=num_layers,
+                           num_units=layer_size,
+                           direction=cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION,
+                           kernel_initializer=recurrent_init['base'],
+                           bias_initializer=recurrent_init['bias'],
+                           **dropout_kwargs)
                 inputs_directed = inputs if scope == 'fw' else reverse(inputs)
-                outputs_directed, (_, states_directed) = rnn(
-                    inputs_directed, 
-                    training=is_training)
+                outputs_directed, (_,
+                                   states_directed) = rnn(inputs_directed,
+                                                          training=is_training)
                 outputs_directed = outputs_directed if scope == 'fw' \
                 else reverse(outputs_directed)
                 outputs.append(outputs_directed)
                 states.append(states_directed)
         outputs = tf.concat(outputs, 2)
-        states  = tf.concat(states, 2)[0]
-        
+        states = tf.concat(states, 2)[0]
+
     else:
         # TF-based dynamic rollout
         if config['bidirectional']:
             outputs, states = tf.nn.bidirectional_dynamic_rnn(
-                cell_fw=_recurrent_cell(
-                    mode,
-                    config,
-                    recurrent_init,
-                    'fw'),
-                cell_bw=_recurrent_cell(
-                    mode,
-                    config,
-                    recurrent_init,
-                    'bw'),
-                inputs=inputs, 
-                time_major=True, 
+                cell_fw=_recurrent_cell(mode, config, recurrent_init, 'fw'),
+                cell_bw=_recurrent_cell(mode, config, recurrent_init, 'bw'),
+                inputs=inputs,
+                time_major=True,
                 sequence_length=tf.to_int64(num_stepss),
                 dtype=tf.float32,
                 swap_memory=True,
                 parallel_iterations=config['num_recurrent_parallel_iters'])
             outputs = tf.concat(outputs, 2)
-            states  = tf.concat(states,  2)
+            states = tf.concat(states, 2)
             # [NUM_STEPS, BATCH_SIZE, 2 x RECURRENT_LAYER_SIZE]
-            # outputs of recurrent layer over all time steps.        
+            # outputs of recurrent layer over all time steps.
         else:
             outputs, states = tf.nn.dynamic_rnn(
                 cell=_recurrent_cell(mode, config, recurrent_init),
-                inputs=inputs, 
-                time_major=True, 
-                sequence_length=num_stepss, 
-                dtype=tf.float32, 
-                swap_memory=True, 
+                inputs=inputs,
+                time_major=True,
+                sequence_length=num_stepss,
+                dtype=tf.float32,
+                swap_memory=True,
                 parallel_iterations=config['num_recurrent_parallel_iters'])
             # [NUM_STEPS, BATCH_SIZE, RECURRENT_LAYER_SIZE]
             # outputs of recurrent layer over all time steps.
@@ -272,16 +255,17 @@ def _recurrence(mode, config, inputs, num_stepss):
         # add newly created variables to respective collections
         if is_training:
             for v in tf.trainable_variables():
-                if 'rnn' in v.name and ('cell/kernel' in v.name): 
+                if 'rnn' in v.name and ('cell/kernel' in v.name):
                     tf.add_to_collection(tf.GraphKeys.WEIGHTS, v)
-                if 'rnn' in v.name and ('cell/bias'   in v.name): 
-                    tf.add_to_collection(tf.GraphKeys.BIASES,  v)
+                if 'rnn' in v.name and ('cell/bias' in v.name):
+                    tf.add_to_collection(tf.GraphKeys.BIASES, v)
 
     return outputs, states
 
+
 def _recurrent_cell(mode, config, recurrent_init, name=''):
-    """Create recurrent cell(s) used in RNN 
-    
+    """Create recurrent cell(s) used in RNN
+
     Args:
         mode: train or predict
         config: dict of params
@@ -299,35 +283,33 @@ def _recurrent_cell(mode, config, recurrent_init, name=''):
     for layer_idx, (layer_size, input_keep_prob, output_keep_prob, \
         keep_prob, hidden_state_keep_prob, memory_cell_keep_prob) \
         in enumerate(zip(
-            config['recurrent_layer_size'], 
-            config['recurrent_input_keep_probability'], 
+            config['recurrent_layer_size'],
+            config['recurrent_input_keep_probability'],
             config['recurrent_output_keep_probability'],
             config['recurrent_keep_probability'],
-            config['recurrent_state_zonein_probability'], 
+            config['recurrent_state_zonein_probability'],
             config['recurrent_memory_zonein_probability'])):
-    
+
         # set context
-        with tf.variable_scope(
-            'sublayer' + str(layer_idx) + (name if name is '' else '_' + name), 
-            initializer=recurrent_init['base']):
+        with tf.variable_scope('sublayer' + str(layer_idx) +
+                               (name if name is '' else '_' + name),
+                               initializer=recurrent_init['base']):
 
             # create core cell
             for case in switch(config['recurrent_unit']):
                 if case('Basic'):
-                    cell = tf.nn.rnn_cell.BasicRNNCell(
-                        num_units=layer_size, 
-                        reuse=(not is_training))
+                    cell = tf.nn.rnn_cell.BasicRNNCell(num_units=layer_size,
+                                                       reuse=(not is_training))
                 elif case('GRU'):
-                    cell = tf.nn.rnn_cell.GRUCell(
-                        num_units=layer_size, 
-                        reuse=(not is_training))
+                    cell = tf.nn.rnn_cell.GRUCell(num_units=layer_size,
+                                                  reuse=(not is_training))
                 elif case('LSTM'):
                     cell = tf.nn.rnn_cell.LSTMCell(
-                        num_units=layer_size, 
+                        num_units=layer_size,
                         use_peepholes=config['recurrent_peepholes'],
-                        forget_bias=config['recurrent_forget_bias'], 
-                        cell_clip=config['recurrent_threshold'], 
-                        initializer=recurrent_init['base'], 
+                        forget_bias=config['recurrent_forget_bias'],
+                        cell_clip=config['recurrent_threshold'],
+                        initializer=recurrent_init['base'],
                         reuse=(not is_training))
                 elif case('LNLSTM'):
                     cell = tf.contrib.rnn.LayerNormBasicLSTMCell(
@@ -338,27 +320,29 @@ def _recurrent_cell(mode, config, recurrent_init, name=''):
                         reuse=(not is_training))
                 elif case('LSTMBlock'):
                     cell = tf.contrib.rnn.LSTMBlockCell(
-                        num_units=layer_size, 
-                        forget_bias=config['recurrent_forget_bias'], 
+                        num_units=layer_size,
+                        forget_bias=config['recurrent_forget_bias'],
                         use_peephole=config['recurrent_peepholes'])
 
             # wrap cell with zoneout
             if hidden_state_keep_prob < 1 or memory_cell_keep_prob < 1:
                 cell = ZoneoutWrapper(
-                    cell=cell, is_training=is_training, 
+                    cell=cell,
+                    is_training=is_training,
                     seed=config['zoneout_seed'],
-                    hidden_state_keep_prob=hidden_state_keep_prob, 
+                    hidden_state_keep_prob=hidden_state_keep_prob,
                     memory_cell_keep_prob=memory_cell_keep_prob)
 
             # if not just evaluation, then wrap cell in dropout
-            if is_training and (input_keep_prob < 1 \
+            if is_training and (input_keep_prob < 1
             or output_keep_prob < 1 or keep_prob < 1):
                 cell = tf.nn.rnn_cell.DropoutWrapper(
-                    cell=cell, 
-                    input_keep_prob=input_keep_prob, 
-                    output_keep_prob=output_keep_prob, 
-                    state_keep_prob=keep_prob, 
-                    variational_recurrent=config['recurrent_variational_dropout'], 
+                    cell=cell,
+                    input_keep_prob=input_keep_prob,
+                    output_keep_prob=output_keep_prob,
+                    state_keep_prob=keep_prob,
+                    variational_recurrent=config[
+                        'recurrent_variational_dropout'],
                     seed=config['dropout_seed'])
 
             # add to collection
@@ -376,8 +360,11 @@ def _recurrent_cell(mode, config, recurrent_init, name=''):
 class ZoneoutWrapper(RNNCell):
     """Operator adding zoneout to hidden state and memory of the given cell."""
 
-    def __init__(self, cell, memory_cell_keep_prob=1.0, 
-                 hidden_state_keep_prob=1.0, seed=None, 
+    def __init__(self,
+                 cell,
+                 memory_cell_keep_prob=1.0,
+                 hidden_state_keep_prob=1.0,
+                 seed=None,
                  is_training=True):
         """Create a cell with hidden state and memory zoneout.
 
@@ -403,25 +390,27 @@ class ZoneoutWrapper(RNNCell):
         # if not (isinstance(cell, BasicLSTMCell) or isinstance(cell, LSTMCell)):
         #   raise TypeError("The parameter cell is not a BasicLSTMCell or LSTMCell.")
         if (isinstance(memory_cell_keep_prob, float)
-        and not (memory_cell_keep_prob >= 0.0 
-        and memory_cell_keep_prob <= 1.0)):
+                and not (memory_cell_keep_prob >= 0.0
+                         and memory_cell_keep_prob <= 1.0)):
             raise ValueError("Parameter memory_cell_keep_prob must be \
                               between 0 and 1: %d" % memory_cell_keep_prob)
-        if (isinstance(hidden_state_keep_prob, float) 
-        and not (hidden_state_keep_prob >= 0.0 
-        and hidden_state_keep_prob <= 1.0)):
+        if (isinstance(hidden_state_keep_prob, float)
+                and not (hidden_state_keep_prob >= 0.0
+                         and hidden_state_keep_prob <= 1.0)):
             raise ValueError("Parameter hidden_state_keep_prob must be \
                               between 0 and 1: %d" % hidden_state_keep_prob)
         self._cell = cell
-        self._memory_cell_keep_prob = memory_cell_keep_prob    
+        self._memory_cell_keep_prob = memory_cell_keep_prob
         self._hidden_state_keep_prob = hidden_state_keep_prob
         self._seed = seed
         self._is_training = is_training
 
-        self._has_memory_cell_zoneout = (not isinstance(self._memory_cell_keep_prob, float) 
-                                         or self._memory_cell_keep_prob < 1)
-        self._has_hidden_state_zoneout = (not isinstance(self._hidden_state_keep_prob, float) 
-                                          or self._hidden_state_keep_prob < 1)
+        self._has_memory_cell_zoneout = (
+            not isinstance(self._memory_cell_keep_prob, float)
+            or self._memory_cell_keep_prob < 1)
+        self._has_hidden_state_zoneout = (
+            not isinstance(self._hidden_state_keep_prob, float)
+            or self._hidden_state_keep_prob < 1)
 
     @property
     def input_size(self):
@@ -441,7 +430,7 @@ class ZoneoutWrapper(RNNCell):
         # compute output and new state as before
         output, new_state = self._cell(inputs, state, scope)
 
-        # if either hidden state or memory cell zoneout is applied, 
+        # if either hidden state or memory cell zoneout is applied,
         # then split state and process
         if self._has_hidden_state_zoneout or self._has_memory_cell_zoneout:
             # split state
@@ -451,14 +440,16 @@ class ZoneoutWrapper(RNNCell):
             # apply zoneout to memory cell and hidden state
             c_and_m = []
             for s_old, s_new, p, has_zoneout in [
-                (c_old, c_new, self._memory_cell_keep_prob,  self._has_memory_cell_zoneout), 
-                (m_old, m_new, self._hidden_state_keep_prob, self._has_hidden_state_zoneout)]:
+                (c_old, c_new, self._memory_cell_keep_prob,
+                 self._has_memory_cell_zoneout),
+                (m_old, m_new, self._hidden_state_keep_prob,
+                 self._has_hidden_state_zoneout)
+            ]:
                 if has_zoneout:
                     if self._is_training:
                         mask = nn_ops.dropout(
-                            array_ops.ones_like(s_new), 
-                            p, 
-                            seed=self._seed) * p # this should just random ops instead. See dropout code for how.
+                            array_ops.ones_like(s_new), p, seed=self._seed
+                        ) * p  # this should just random ops instead. See dropout code for how.
                         s = ((1. - mask) * s_old) + (mask * s_new)
                     else:
                         s = ((1. - p) * s_old) + (p * s_new)

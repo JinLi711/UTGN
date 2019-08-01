@@ -33,6 +33,7 @@ str_or_none = lambda x: None if isinstance(x, str) and x == 'none' else x
 str_or_bool = lambda x: (x == 'true' or x == 'True') if isinstance(x, str) else x
 eval_if_str = lambda x: literal_eval(x) if isinstance(x, str) else x
 
+
 class Config(object):
     """Class for configuration settings.
     
@@ -45,7 +46,7 @@ class Config(object):
 
     def __init__(self, file=None, config={}):
         """Loads configurations from file."""
-        
+
         if file is not None:
             file_config = self.dict_import(file)
             file_config.update(config)
@@ -56,7 +57,7 @@ class Config(object):
 
     def dict_import(self, file):
         """Parse the config file into a dictionary."""
-        
+
         vars_ = {}
         with open(file) as f:
             for line in f:
@@ -159,10 +160,10 @@ class RGNConfig(Config):
             'base':                      float(config.get('currBase',            4.0)), # influences the weights for drmsd
             'rate':                      float(config.get('currRate',            0.002)), # rate of curr update.
             'threshold':                 float(config.get('currThreshold',       5.0)), # use if 'loss_threshold'
-            'change_num_iterations':       int(config.get('currChangeNumIters',  5)), # (???)
+            'change_num_iterations':       int(config.get('currChangeNumIters',  5)),
             'sharpness':                 float(config.get('currSharpness',       20.)), # use for 'loss_change'
             'update_loss_history': str_or_bool(config.get('updateLossHistory',   False)), # whether to update loss history
-            'loss_history_subgroup':           config.get('lossHistorySubgroup', 'all') # (???)
+            'loss_history_subgroup':           config.get('lossHistorySubgroup', 'all')
         }
 
         self.architecture = {

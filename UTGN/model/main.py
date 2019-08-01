@@ -1,6 +1,4 @@
-"""Main script for executing training / testing. 
-
-TODO: rename protling to something more descriptive
+"""Main script for executing training / testing.
 """
 
 import os
@@ -28,21 +26,24 @@ DATAS_DIRNAME = 'data'
 CHECKPOINTS_DIRNAME = 'checkpoints'
 LOGS_DIRNAME = 'logs'
 ALPHABETS_DIRNAME = 'alphabets'
-FULL_TRAINING_DIRNAME     = 'training'
+FULL_TRAINING_DIRNAME = 'training'
 SAMPLE_VALIDATION_DIRNAME = 'validation'
-FULL_TESTING_DIRNAME      = 'testing'
-TRAINING_OUTPUTS_DIRNAME   = 'outputsTraining'
+FULL_TESTING_DIRNAME = 'testing'
+TRAINING_OUTPUTS_DIRNAME = 'outputsTraining'
 VALIDATION_OUTPUTS_DIRNAME = 'outputsValidation'
-TESTING_OUTPUTS_DIRNAME    = 'outputsTesting'
+TESTING_OUTPUTS_DIRNAME = 'outputsTesting'
+
 
 # exception classes
 class MilestoneError(RuntimeError):
     """ Exception raised for missing milestone """
     pass
 
+
 class DeadGradientError(RuntimeError):
     """ Exception raised for zero gradient """
     pass
+
 
 # logging functions
 def evaluate_and_log(log_file, configs, models, session):
@@ -65,11 +66,11 @@ def evaluate_and_log(log_file, configs, models, session):
         diagnostics = models['training'].diagnose(session)
     else:
         diagnostics = {k: float('nan') for k in (
-            'min_weight', 
-            'max_weight', 
-            'min_grad', 
-            'max_grad', 
-            'curriculum_step', 
+            'min_weight',
+            'max_weight',
+            'min_grad',
+            'max_grad',
+            'curriculum_step',
             'curriculum_quantiles')}
 
     # Retrieve the correct loss.
@@ -89,7 +90,7 @@ def evaluate_and_log(log_file, configs, models, session):
         wt_val_loss_subgroups_string = ''.join(['\tValidation_' + grp + ': {tertiary_loss_' + grp + ':.3f}' for grp in configs['eval_wt_val'].io['evaluation_sub_groups']])
     else:
         wt_val_loss = {'tertiary_loss_all': float('nan')}
-        wt_val_loss_subgroups_string = '' 
+        wt_val_loss_subgroups_string = ''
 
     for loss_key in ['tertiary_loss_all']:
         if loss_key in wt_test_loss_dict:
@@ -100,18 +101,18 @@ def evaluate_and_log(log_file, configs, models, session):
 
     # Log string
     global_step = models['training'].current_step(session)
-    base_log = ('Iteration: {0}\tTrain: {1:.3f}\t' + \
-                'Validation: {2:.3f}\tTest: {3:.3f}\t' + \
-                'Weight: {min_weight:.4e} {max_weight:.4e}\t' + \
-                'Update: {min_grad:.4e} {max_grad:.4e}' + \
+    base_log = ('Iteration: {0}\tTrain: {1:.3f}\t' +
+                'Validation: {2:.3f}\tTest: {3:.3f}\t' +
+                'Weight: {min_weight:.4e} {max_weight:.4e}\t' +
+                'Update: {min_grad:.4e} {max_grad:.4e}' +
                 wt_val_loss_subgroups_string
                ).format(
-                   global_step, 
-                   wt_train_loss, 
-                   wt_val_loss['tertiary_loss_all'], 
-                   wt_test_loss, 
+                   global_step,
+                   wt_train_loss,
+                   wt_val_loss['tertiary_loss_all'],
+                   wt_test_loss,
                    **merge_dicts(diagnostics, wt_val_loss))
-    
+
     # Additional diagnostics and losses if there's a curriculum.
     if configs['training'].curriculum['mode'] is not None:
         # evaluation of unweighted losses
