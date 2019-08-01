@@ -327,10 +327,16 @@ if __name__ == '__main__':
         default='.',
         help='Directory to save TM score files')
 
+    parser.add_argument(
+        '-t', '--tm_scores',
+        action='store_true', 
+        help='If set, create tm scores.')
+
     args = parser.parse_args()
 
     proteins = tf_record_to_dict(args.tf_record, args.tertiary_dir)
 
     create_pdb_files(proteins, args.pdb_dir)
 
-    create_TM_files(proteins, args.pdb_dir, args.tm_dir)
+    if args.tm_scores:
+        create_TM_files(proteins, args.pdb_dir, args.tm_dir)
