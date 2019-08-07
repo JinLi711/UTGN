@@ -11,7 +11,7 @@ Download the files [here](https://github.com/JinLi711/UTGN/tree/master/UTGN) and
 The [`main.py`](https://github.com/JinLi711/UTGN/blob/master/UTGN/model/main.py) script facilities training of and prediction using UTGN models. Below are typical use cases. The script also accepts a number of command-line options whose functionality can be queried using the `--help` option.
 
 ### Train a new model or continue training an existing model
-UTGN models are described using a configuration file that controls hyperparameters and architectural choices. For a list of available options and their descriptions, see its [documentation](https://github.com/JinLi711/UTGN/blob/master/UTGN/CONFIG.md). Once a configuration file has been created, along with a suitable dataset (download a ready-made [ProteinNet](https://github.com/aqlaboratory/proteinnet) data set or create a new one from scratch using the [`convert_to_tfrecord.py`](https://github.com/JinLi711/UTGN/blob/master/UTGN/data_processing/convert_to_tfrecord.py) script), the following directory structure must be created:
+UTGN models are described using a configuration file that controls hyperparameters and architectural choices. For a list of available options and their descriptions, see its [documentation](https://github.com/JinLi711/UTGN/blob/master/CONFIG.md). Once a configuration file has been created, along with a suitable dataset (download a ready-made [ProteinNet](https://github.com/aqlaboratory/proteinnet) data set or create a new one from scratch using the [`convert_to_tfrecord.py`](https://github.com/JinLi711/UTGN/blob/master/UTGN/data_processing/convert_to_tfrecord.py) script), the following directory structure must be created:
 
 ```
 <baseDirectory>/runs/<runName>/<datasetName>/<configurationFile>
