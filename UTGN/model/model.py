@@ -1164,7 +1164,8 @@ def _dihedrals(mode, config, inputs, alphabet=None):
                 outputs_collections=config['name'] + '_' + tf.GraphKeys.ACTIVATIONS)
 
         # softmax for linear to create angle mixtures
-        flattened_linear = tf.reshape(linear, [-1, output_size])                               # [NUM_STEPS x BATCH_SIZE, OUTPUT_SIZE]
+        # [NUM_STEPS x BATCH_SIZE, OUTPUT_SIZE]
+        flattened_linear = tf.reshape(linear, [-1, output_size]) 
         probs = tf.nn.softmax(
             flattened_linear / config['alphabet_temperature'], 
             name='probs') # [NUM_STEPS x BATCH_SIZE, OUTPUT_SIZE]      

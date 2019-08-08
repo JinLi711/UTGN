@@ -87,7 +87,9 @@ def evaluate_and_log(log_file, configs, models, session):
             for subgroup in ['all'] + configs['eval_wt_val'].io['evaluation_sub_groups']:
                 loss_key = loss_type + '_' + subgroup
                 wt_val_loss.update({loss_key: wt_val_loss_dict.get(loss_key, float('nan'))})
-        wt_val_loss_subgroups_string = ''.join(['\tValidation_' + grp + ': {tertiary_loss_' + grp + ':.3f}' for grp in configs['eval_wt_val'].io['evaluation_sub_groups']])
+        wt_val_loss_subgroups_string = ''.join(
+            ['\tValidation_' + grp + ': {tertiary_loss_' + grp + ':.3f}' \
+            for grp in configs['eval_wt_val'].io['evaluation_sub_groups']])
     else:
         wt_val_loss = {'tertiary_loss_all': float('nan')}
         wt_val_loss_subgroups_string = ''
@@ -140,7 +142,9 @@ def evaluate_and_log(log_file, configs, models, session):
                 for subgroup in ['all'] + configs['eval_unwt_val'].io['evaluation_sub_groups']:
                     loss_key = loss_type + '_' + subgroup
                     unwt_val_loss.update({loss_key: unwt_val_loss_dict.get(loss_key, float('nan'))})
-            unwt_val_loss_subgroups_string = ''.join(['\tUnweighted Validation_' + grp + ': {tertiary_loss_' + grp + ':.3f}' for grp in configs['eval_unwt_val'].io['evaluation_sub_groups']])
+            unwt_val_loss_subgroups_string = ''.join(
+                ['\tUnweighted Validation_' + grp + ': {tertiary_loss_' + grp + ':.3f}'\
+                for grp in configs['eval_unwt_val'].io['evaluation_sub_groups']])
         else:
             unwt_val_loss = {'tertiary_loss_all': float('nan')}
             unwt_val_loss_subgroups_string = ''
@@ -596,7 +600,8 @@ def run_model(args):
             models['training'].finish(session, save=False)
 
             if args.restart_on_dead_gradient:
-                print('Nan or dead gradient encountered; model will be resumed from last checkpoint if one exists, or restarted from scratch otherwise.')        
+                print('Nan or dead gradient encountered;')
+                print('model will be resumed from last checkpoint if one exists, or restarted from scratch otherwise.')        
                 if not os.path.isdir(checkpoints_dir):
                     for sub_dir in next(os.walk(run_dir))[1]: 
                         rmtree(os.path.join(run_dir, sub_dir)) # erase all old directories    
