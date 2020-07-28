@@ -1,5 +1,5 @@
 # Universal Transforming Networks
-This is the Tensorflow implementation of [Universal Transforming Geometric Networks](https://arxiv.org/abs/1908.00723) (UTGN). See [here](https://github.com/JinLi711/UTGN/blob/master/UTGN%20Presentation.pdf) for a slideshow presentation.
+This is the TensorFlow implementation of [Universal Transforming Geometric Networks](https://arxiv.org/abs/1908.00723) (UTGN). See [here](https://github.com/JinLi711/UTGN/blob/master/UTGN%20Presentation.pdf) for a slideshow presentation.
 
 ![UTGN](images/UTGN_diagram.png)
 
