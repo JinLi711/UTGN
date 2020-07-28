@@ -1,6 +1,8 @@
 # Universal Transforming Networks
 This is the Tensorflow implementation of [Universal Transforming Geometric Networks](https://arxiv.org/abs/1908.00723) (UTGN). See [here](https://github.com/JinLi711/UTGN/blob/master/UTGN%20Presentation.pdf) for a slideshow presentation.
 
+![UTGN](images/UTGN_diagram.png)
+
 ## Installation and requirements
 Download the files [here](https://github.com/JinLi711/UTGN/tree/master/UTGN) and use `main.py`, described further below, to train new models and predict structures. Below are the language requirements and package dependencies:
 
