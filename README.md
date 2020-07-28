@@ -1,5 +1,5 @@
 # Universal Transforming Networks
-This is the Tensorflow implementation of Universal Transforming Geometric Networks (UTGNs), described [here](https://arxiv.org/abs/1908.00723). See [here](https://github.com/JinLi711/UTGN/blob/master/UTGN%20Presentation.pdf) for a slideshow presentation.
+This is the Tensorflow implementation of [Universal Transforming Geometric Networks](https://arxiv.org/abs/1908.00723) (UTGN). See [here](https://github.com/JinLi711/UTGN/blob/master/UTGN%20Presentation.pdf) for a slideshow presentation.
 
 ## Installation and requirements
 Download the files [here](https://github.com/JinLi711/UTGN/tree/master/UTGN) and use `main.py`, described further below, to train new models and predict structures. Below are the language requirements and package dependencies:
@@ -55,9 +55,9 @@ python protling.py <baseDirectory>/runs/<runName>/<datasetName>/<configurationFi
 The first line searches the supplied database for matches to the supplied sequence and extracts a PSSM out of the results. It will generate multiple new files. These are then used in the second line to construct a text-based ProteinNet file (with 42 entries per evolutionary profile, compatible with the pre-trained UTGN models). The third line converts the file to `TFRecords` format, and the fourth line copies the file to the testing directory of a pre-trained model. Finally the fifth line predicts the structure using the pre-trained UTGN model. The outputs will be placed in  `<baseDirectory>/runs/<runName>/<datasetName>/<latestIterationNumber>/outputsTesting/` and will be comprised of two files: a `.tertiary` file which contains the atomic coordinates, and `.recurrent_states` file which contains the UTGN latent representation of the sequence.
 
 
-## Bugs
+<!-- ## Bugs
 
-* Loading model and predicting is buggy.
+* Loading model and predicting is buggy. -->
 
 ## Acknowledgements
 This work is a modification of: [End-to-end differentiable learning of protein structure, Cell Systems 2019](https://www.cell.com/cell-systems/fulltext/S2405-4712(19)30076-6)
